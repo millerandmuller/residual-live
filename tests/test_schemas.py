@@ -152,9 +152,13 @@ def make_notice(audit_log: list[AuditEntry] | None = None) -> SettlementNotice:
 # ---------------------------------------------------------------------------
 
 class TestMoney:
-    def test_two_decimal_rounding(self):
-        m = Money(amount=Decimal("12.3456"), currency="usd")
-        assert m.amount == Decimal("12.35")
+    def test_four_decimal_rounding(self):
+        m = Money(amount=Decimal("12.34561"), currency="usd")
+        assert m.amount == Decimal("12.3456")
+
+    def test_per_minute_rate_precision(self):
+        m = Money(amount=Decimal("0.0015"), currency="usd")
+        assert m.amount == Decimal("0.0015")
 
     def test_currency_uppercased(self):
         m = Money(amount=Decimal("10"), currency="eur")
