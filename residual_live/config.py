@@ -28,6 +28,7 @@ class Settings:
     CONFLUENT_API_KEY: str = os.getenv("CONFLUENT_API_KEY", "")
     CONFLUENT_API_SECRET: str = os.getenv("CONFLUENT_API_SECRET", "")
     CONFLUENT_TOPIC: str = os.getenv("CONFLUENT_TOPIC", "demo-events")
+    CONFLUENT_OBLIGATIONS_TOPIC: str = os.getenv("CONFLUENT_OBLIGATIONS_TOPIC", "obligations")
     CONFLUENT_GROUP_ID: str = os.getenv("CONFLUENT_GROUP_ID", "residual-live-group")
 
     # Google Gemini / ADK Configuration

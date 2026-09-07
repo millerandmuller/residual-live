@@ -36,6 +36,7 @@ SAMPLE_PARTY_B = "Global Cinema Distribution Corp"
 T_EFFECTIVE = datetime(2025, 1, 1, tzinfo=timezone.utc)
 
 SAMPLE_RULES = [
+    # Echoes of Eternity (Primary Hero Title)
     ContractRule(
         rule_id="RULE-CLAUSE-4.1-BASE",
         contract_id=SAMPLE_CONTRACT_ID,
@@ -45,7 +46,7 @@ SAMPLE_RULES = [
         territories=[RightsTerritory.US, RightsTerritory.ROW],
         effective_from=T_EFFECTIVE,
         unit_rate=Money(amount=Decimal("0.0015"), currency="USD"),
-        display_label="Base SVOD Tier $0.0015/min",
+        display_label="Echoes: Base SVOD Tier $0.0015/min",
     ),
     ContractRule(
         rule_id="RULE-CLAUSE-4.2-HERO-THRESHOLD",
@@ -60,7 +61,42 @@ SAMPLE_RULES = [
         threshold_value=Decimal("5000000"),
         unit_rate=Money(amount=Decimal("0.0050"), currency="USD"),
         apply_rate_to_full_accumulation=True,
-        display_label="Milestone Escalator ≥ 5M stream minutes",
+        display_label="Echoes: Milestone Escalator ≥ 5M stream minutes",
+    ),
+    # Neon Horizon (DACH AVOD/SVOD & Broadcast)
+    ContractRule(
+        rule_id="RULE-NEON-3.1-REVSHARE",
+        contract_id="AGR-DACH-AVOD-2026-042",
+        clause_reference="§ 3.1 – 15% Revenue Share (AVOD/SVOD, DACH)",
+        rule_type=RuleType.REVENUE_SHARE,
+        channels=[UsageChannel.AVOD, UsageChannel.SVOD],
+        territories=[RightsTerritory.DE, RightsTerritory.AT, RightsTerritory.CH],
+        effective_from=T_EFFECTIVE,
+        rate_percent=Decimal("15.0"),
+        display_label="Neon: 15% Rev Share (DACH)",
+    ),
+    ContractRule(
+        rule_id="RULE-NEON-3.2-BROADCAST",
+        contract_id="AGR-DACH-AVOD-2026-042",
+        clause_reference="§ 3.2 – €8.00 flat fee per broadcast play",
+        rule_type=RuleType.FLAT_FEE_PER_PLAY,
+        channels=[UsageChannel.BROADCAST],
+        territories=[RightsTerritory.DE, RightsTerritory.AT, RightsTerritory.CH],
+        effective_from=T_EFFECTIVE,
+        unit_rate=Money(amount=Decimal("8.00"), currency="EUR"),
+        display_label="Neon: €8 flat per broadcast play",
+    ),
+    # Quantum Fallback (Global Broadcast)
+    ContractRule(
+        rule_id="RULE-QUANTUM-2.2-BROADCAST",
+        contract_id="AGR-BROADCAST-GLOBAL-2026-019",
+        clause_reference="§ 2.2 – Broadcast Syndication USD 50.00 per exhibition play",
+        rule_type=RuleType.FLAT_FEE_PER_PLAY,
+        channels=[UsageChannel.BROADCAST],
+        territories=[RightsTerritory.ROW],
+        effective_from=T_EFFECTIVE,
+        unit_rate=Money(amount=Decimal("50.00"), currency="USD"),
+        display_label="Quantum: $50/play syndication",
     ),
 ]
 
@@ -79,6 +115,9 @@ class RoyaltyEngine:
         self.total_plays: int = 0
         self.total_events_count: int = 0
         self.current_accrued_royalty: Decimal = Decimal("0.00")
+
+        # Multi-title grouping
+        self.by_title: Dict[str, dict] = {}
 
         # Threshold tracking
         self.threshold_target: Decimal = Decimal("5000000")
@@ -114,6 +153,8 @@ class RoyaltyEngine:
 
         # Evaluate rules
         for rule in self.rules:
+            if rule.contract_id and event.contract_id and rule.contract_id != event.contract_id:
+                continue
             if not rule.matches_event(event):
                 continue
 
@@ -127,12 +168,33 @@ class RoyaltyEngine:
                     rule_id=rule.rule_id,
                     clause_reference=rule.clause_reference,
                     usage_metric_label=f"{event.stream_minutes} stream_minutes",
-                    contribution=Money(amount=amount, currency="USD"),
-                    computation_note=f"{event.stream_minutes} min × USD {rule.unit_rate.amount}/min",
+                    contribution=Money(amount=amount, currency=rule.unit_rate.currency),
+                    computation_note=f"{event.stream_minutes} min × {rule.unit_rate.currency} {rule.unit_rate.amount}/min",
                 )
                 self.audit_entries.append(audit_entry)
 
         self.current_accrued_royalty += event_contribution
+
+        # Update per-title metrics
+        t_id = event.title_id
+        if t_id not in self.by_title:
+            self.by_title[t_id] = {
+                "title_id": t_id,
+                "title_name": event.title_name,
+                "contract_id": event.contract_id,
+                "stream_minutes": 0,
+                "play_count": 0,
+                "events_count": 0,
+                "accrued_royalty": 0.0,
+                "settlements_count": 0,
+            }
+        t_stats = self.by_title[t_id]
+        if event.stream_minutes:
+            t_stats["stream_minutes"] += int(event.stream_minutes)
+        if event.play_count:
+            t_stats["play_count"] += int(event.play_count)
+        t_stats["events_count"] += 1
+        t_stats["accrued_royalty"] = round(t_stats["accrued_royalty"] + float(event_contribution), 2)
 
         # Check Threshold Trigger (The Hero Moment)
         newly_triggered = False
@@ -185,15 +247,20 @@ class RoyaltyEngine:
             )
             self.audit_entries.append(milestone_entry)
             self.current_accrued_royalty += bonus_amount
+            if t_id in self.by_title:
+                self.by_title[t_id]["settlements_count"] += 1
+                self.by_title[t_id]["accrued_royalty"] = round(
+                    self.by_title[t_id]["accrued_royalty"] + float(bonus_amount), 2
+                )
 
             notice_id = f"SETTLE-LIVE-{uuid.uuid4().hex[:8].upper()}"
             period_until = max(event.occurred_at + timedelta(seconds=1), self.events[0].occurred_at + timedelta(seconds=1))
 
             hero_notice = SettlementNotice.create(
                 notice_id=notice_id,
-                title_id=SAMPLE_TITLE_ID,
-                title_name=SAMPLE_TITLE_NAME,
-                contract_id=SAMPLE_CONTRACT_ID,
+                title_id=event.title_id or SAMPLE_TITLE_ID,
+                title_name=event.title_name or SAMPLE_TITLE_NAME,
+                contract_id=event.contract_id or SAMPLE_CONTRACT_ID,
                 licensor_id="LICENSOR-SOVEREIGN",
                 licensor_name=SAMPLE_PARTY_A,
                 licensee_id="LICENSEE-GLOBAL",
@@ -213,6 +280,8 @@ class RoyaltyEngine:
 
         return {
             "event_id": event.event_id,
+            "title_id": event.title_id,
+            "title_name": event.title_name,
             "total_stream_minutes": int(self.total_stream_minutes),
             "threshold_progress_pct": round(progress_pct, 2),
             "current_accrued_royalty": float(self.current_accrued_royalty),
@@ -247,4 +316,6 @@ class RoyaltyEngine:
             "hero_moment_occurred": self.hero_moment_occurred,
             "hero_notice_id": self.hero_notice_id,
             "settlements_count": len(self.settlement_notices),
+            "by_title": self.by_title,
+            "active_titles_count": len(self.by_title),
         }

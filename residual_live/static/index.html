@@ -477,11 +477,106 @@
       border-radius: 14px;
       max-width: 650px;
       width: 100%;
-      padding: 2rem;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75);
+    /* Multi-Title Portfolio Tabs */
+    .title-tabs-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 0.6rem 1rem;
+    }
+
+    .title-tabs-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .title-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .title-tab {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .title-tab:hover {
+      background: rgba(51, 65, 85, 0.7);
+      color: #fff;
+    }
+
+    .title-tab.active {
+      background: rgba(59, 130, 246, 0.18);
+      border-color: rgba(59, 130, 246, 0.5);
+      color: #93c5fd;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+    }
+
+    .tab-indicator {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .tab-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--text-dim);
+    }
+
+    /* Confluent Obligations Stream Card */
+    .obligations-stream-card {
+      background: linear-gradient(135deg, rgba(8, 47, 73, 0.4), rgba(15, 23, 42, 0.8));
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: 0.75rem;
+      box-shadow: 0 4px 20px rgba(14, 116, 144, 0.15);
+      animation: fadeIn 0.4s ease;
+    }
+
+    .obligations-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .obligation-details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(56, 189, 248, 0.15);
     }
   </style>
 </head>
@@ -495,16 +590,16 @@
         </svg>
         RESIDUAL LIVE
       </div>
-      <div class="badge-live">
+      <div class="badge-live" id="confluent-badge">
         <div class="pulse-dot"></div>
-        CONFLUENT CLOUD CONNECTED
+        <span id="confluent-badge-text">CONFLUENT: demo-events (IN) · obligations (OUT)</span>
       </div>
     </div>
 
     <div class="header-actions">
       <button class="btn btn-bob" onclick="openBobModal()">
         <span>IBM BOB GOVERNANCE</span>
-        <span style="opacity: 0.7;">e1935a4d</span>
+        <span style="opacity: 0.85;">5 Runs · 5.8 Coins</span>
       </button>
       <button class="btn btn-secondary" onclick="resetDemo()">Reset</button>
       <button class="btn btn-primary" id="btn-step" onclick="stepDemo()">
@@ -541,8 +636,76 @@
           <span>Cold Open: ADK Contract Intake</span>
         </button>
         <span class="platform-pill" style="color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1);">
-          52/52 AUDIT TESTS VALIDATED
+          90/90 AUDIT TESTS VALIDATED
         </span>
+      </div>
+    </section>
+
+    <!-- Multi-Title Selector Bar (Scaling Beat) -->
+    <section class="title-tabs-bar">
+      <div class="title-tabs-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+        Multi-Title Streaming:
+      </div>
+      <div class="title-tabs">
+        <button class="title-tab active" id="tab-all" onclick="selectTitleTab('ALL')">
+          <span class="tab-indicator" style="background: #3b82f6;"></span>
+          All Titles (Consolidated)
+          <span class="tab-badge" id="tab-all-badge">3 Catalog Titles</span>
+        </button>
+        <button class="title-tab" id="tab-echoes" onclick="selectTitleTab('TITLE-ECHOES-2026')">
+          <span class="tab-indicator" style="background: #818cf8;"></span>
+          Echoes of Eternity
+          <span class="tab-badge" style="color: #a5b4fc;" id="tab-echoes-badge">Hero · SAG-AFTRA</span>
+        </button>
+        <button class="title-tab" id="tab-neon" onclick="selectTitleTab('TITLE-NEON-2026')">
+          <span class="tab-indicator" style="background: #34d399;"></span>
+          Neon Horizon
+          <span class="tab-badge" style="color: #6ee7b7;" id="tab-neon-badge">DACH AVOD/SVOD</span>
+        </button>
+        <button class="title-tab" id="tab-quantum" onclick="selectTitleTab('TITLE-QUANTUM-2026')">
+          <span class="tab-indicator" style="background: #fbbf24;"></span>
+          Quantum Fallback
+          <span class="tab-badge" style="color: #fde68a;" id="tab-quantum-badge">Global Broadcast</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Confluent Bidirectional Nervous System Stream Card (Obligations Topic) -->
+    <section class="obligations-stream-card" id="obligations-card" style="display: none;">
+      <div class="obligations-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span class="pulse-dot" style="background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
+          <span style="font-weight: 700; letter-spacing: 0.04em; color: #e0f2fe; font-size: 0.85rem;">CONFLUENT NERVOUS SYSTEM · LIVE OBLIGATION TOPIC STREAMED</span>
+          <span class="platform-pill" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);">TOPIC: obligations</span>
+        </div>
+        <span style="font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; color: #7dd3fc;" id="ob-timestamp">Real-time settlement streamed</span>
+      </div>
+      <div class="obligation-details-grid">
+        <div>
+          <span class="meta-label">Notice ID</span>
+          <div class="meta-value" style="font-size: 0.75rem;" id="ob-notice-id">-</div>
+        </div>
+        <div>
+          <span class="meta-label">Title Property</span>
+          <div class="meta-value" style="font-size: 0.8rem;" id="ob-title">-</div>
+        </div>
+        <div>
+          <span class="meta-label">Beneficiary</span>
+          <div class="meta-value" style="font-size: 0.78rem;" id="ob-beneficiary">-</div>
+        </div>
+        <div>
+          <span class="meta-label">Settlement Amount</span>
+          <div class="meta-value" style="color: #38bdf8; font-weight: 700; font-size: 1.15rem;" id="ob-amount">-</div>
+        </div>
+        <div>
+          <span class="meta-label">Status</span>
+          <div class="meta-value" style="color: #fbbf24; font-weight: 600;" id="ob-status">-</div>
+        </div>
+        <div>
+          <span class="meta-label">Audit Verification</span>
+          <div class="meta-value" style="color: #34d399;" id="ob-proof">✓ SHA-256 Verified</div>
+        </div>
       </div>
     </section>
 
@@ -675,10 +838,54 @@
       };
     }
 
+    let currentTitleFilter = "ALL";
+
+    function selectTitleTab(titleId) {
+      currentTitleFilter = titleId;
+      document.querySelectorAll(".title-tab").forEach(tab => tab.classList.remove("active"));
+      if (titleId === "ALL") document.getElementById("tab-all")?.classList.add("active");
+      else if (titleId === "TITLE-ECHOES-2026") document.getElementById("tab-echoes")?.classList.add("active");
+      else if (titleId === "TITLE-NEON-2026") document.getElementById("tab-neon")?.classList.add("active");
+      else if (titleId === "TITLE-QUANTUM-2026") document.getElementById("tab-quantum")?.classList.add("active");
+
+      document.querySelectorAll(".event-row").forEach(row => {
+        const rowTitle = row.getAttribute("data-title-id");
+        if (currentTitleFilter === "ALL" || rowTitle === currentTitleFilter) {
+          row.style.display = "flex";
+        } else {
+          row.style.display = "none";
+        }
+      });
+    }
+
+    function showObligationStream(notice) {
+      const card = document.getElementById("obligations-card");
+      if (!card) return;
+      card.style.display = "flex";
+      document.getElementById("ob-notice-id").innerText = notice.notice_id || "-";
+      document.getElementById("ob-title").innerText = `${notice.title_name || 'Echoes of Eternity'} (${notice.title_id || 'TITLE-ECHOES-2026'})`;
+      document.getElementById("ob-beneficiary").innerText = notice.licensor_name || "Sovereign Media Rights LLC";
+      const amt = parseFloat(notice.net_royalty_due?.amount || notice.net_royalty_due || 25000);
+      document.getElementById("ob-amount").innerText = `$${amt.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+      document.getElementById("ob-status").innerText = `${notice.status} (Streamed & Verified)`;
+      document.getElementById("ob-timestamp").innerText = `Received ${new Date().toLocaleTimeString()} on topic: obligations`;
+      
+      const badge = document.getElementById("confluent-badge-text");
+      if (badge) {
+        badge.innerText = "CONFLUENT: demo-events (IN) · obligations (OUT) [STREAM ACTIVE]";
+        setTimeout(() => {
+          badge.innerText = "CONFLUENT: demo-events (IN) · obligations (OUT)";
+        }, 5000);
+      }
+    }
+
     function handleMessage(data) {
       if (data.type === "INITIAL_STATE") {
         updateSummary(data.summary);
         renderSettlements(data.settlements);
+        if (data.settlements && data.settlements.length > 0) {
+          showObligationStream(data.settlements[data.settlements.length - 1]);
+        }
         if (data.recent_events && data.recent_events.length > 0) {
           eventFeed.innerHTML = "";
           data.recent_events.forEach(prependEvent);
@@ -689,11 +896,19 @@
         if (data.engine_update.newly_triggered) {
           fetchSettlements();
         }
+      } else if (data.type === "OBLIGATION_STREAMED") {
+        showObligationStream(data.notice);
+        fetchSettlements();
       } else if (data.type === "SETTLEMENT_APPROVED") {
         updateSummary(data.summary);
         fetchSettlements();
+        if (data.notice) {
+          showObligationStream(data.notice);
+        }
       } else if (data.type === "RESET") {
         updateSummary(data.summary);
+        const card = document.getElementById("obligations-card");
+        if (card) card.style.display = "none";
         eventFeed.innerHTML = '<div style="text-align: center; color: var(--text-dim); padding: 3rem 1rem;">Click <strong>"Next Demo Event"</strong> above to inject curated stream events into Confluent.</div>';
         settlementContainer.innerHTML = '<div style="text-align: center; color: var(--text-dim); padding: 3rem 1rem; border: 1px dashed var(--border-subtle); border-radius: 8px;">Awaiting threshold breach (5,000,000 stream minutes)...</div>';
       }
@@ -712,15 +927,50 @@
         progressBar.classList.remove("breached");
       }
       settlementCountBadge.innerText = `${s.settlements_count} Notices`;
+
+      if (s.by_title) {
+        const echoes = s.by_title["TITLE-ECHOES-2026"];
+        const neon = s.by_title["TITLE-NEON-2026"];
+        const quantum = s.by_title["TITLE-QUANTUM-2026"];
+        if (echoes && document.getElementById("tab-echoes-badge")) {
+          document.getElementById("tab-echoes-badge").innerText = `${(echoes.stream_minutes || 0).toLocaleString()} mins`;
+        }
+        if (neon && document.getElementById("tab-neon-badge")) {
+          document.getElementById("tab-neon-badge").innerText = `${neon.events_count} events (DACH)`;
+        }
+        if (quantum && document.getElementById("tab-quantum-badge")) {
+          document.getElementById("tab-quantum-badge").innerText = `${quantum.play_count || 0} plays`;
+        }
+      }
     }
 
     function prependEvent(ev, isHero = false) {
       const div = document.createElement("div");
       div.className = `event-row ${isHero ? "hero-event" : ""}`;
+      div.setAttribute("data-title-id", ev.title_id || "TITLE-ECHOES-2026");
+      
+      if (currentTitleFilter !== "ALL" && ev.title_id && ev.title_id !== currentTitleFilter) {
+        div.style.display = "none";
+      }
+
       const channelLabel = (ev.channel || 'SVOD').toUpperCase();
       const territoryLabel = ev.territory || 'US';
+      
+      let titleBadgeStyle = "color: #a5b4fc; border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.15);";
+      let titleName = ev.title_name || "Echoes of Eternity";
+      if (ev.title_id === "TITLE-NEON-2026") {
+        titleBadgeStyle = "color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.15);";
+      } else if (ev.title_id === "TITLE-QUANTUM-2026") {
+        titleBadgeStyle = "color: #fde68a; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.15);";
+      }
+
+      const usageNum = ev.stream_minutes 
+        ? `+${ev.stream_minutes.toLocaleString()} mins`
+        : `+${ev.play_count || 0} plays`;
+
       div.innerHTML = `
         <div class="event-main">
+          <span class="platform-pill" style="${titleBadgeStyle}">${titleName}</span>
           <span class="platform-pill">${channelLabel} ${territoryLabel}</span>
           <div>
             <div style="font-weight: 600; color: #f8fafc;">${ev.event_id}</div>
@@ -728,8 +978,8 @@
           </div>
         </div>
         <div style="text-align: right;">
-          <div class="event-nums">+${(ev.stream_minutes || 0).toLocaleString()} mins</div>
-          <div style="font-size: 0.72rem; color: var(--text-dim);">Clause 4.1 matched</div>
+          <div class="event-nums">${usageNum}</div>
+          <div style="font-size: 0.72rem; color: var(--text-dim);">${ev.contract_id || 'Contract Matched'}</div>
         </div>
       `;
       if (eventFeed.children.length === 1 && eventFeed.children[0].innerText.includes("Click")) {

@@ -21,15 +21,22 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .confluent_client import ConfluentConsumerThread, ConfluentProducer
+from .config import settings
+from .confluent_client import (
+    ConfluentConsumerThread,
+    ConfluentProducer,
+    ObligationsConsumerThread,
+    ObligationsProducer,
+)
 from .demo_data import create_curated_demo_stream
 from .engine import RoyaltyEngine
-from .schemas import RoyaltyEvent
+from .schemas import RoyaltyEvent, SettlementNotice
 
 logger = logging.getLogger("residual_live.app")
 
 engine = RoyaltyEngine()
 producer = ConfluentProducer()
+obligations_producer = ObligationsProducer()
 demo_events_queue: List[RoyaltyEvent] = []
 _loop: asyncio.AbstractEventLoop = None
 
@@ -63,9 +70,25 @@ class ConnectionManager:
 ws_manager = ConnectionManager()
 
 
+def publish_obligation_notice(notice: SettlementNotice):
+    """Publish quantified settlement obligation to Confluent Cloud obligations topic."""
+    try:
+        obligations_producer.produce_notice(notice)
+        logger.info(f"Published obligation {notice.notice_id} to Confluent obligations topic")
+    except Exception as e:
+        logger.error(f"Failed to publish notice to obligations topic: {e}")
+
+
 def on_kafka_event(event: RoyaltyEvent):
     """Callback when an event arrives from Confluent Cloud."""
     res = engine.process_event(event)
+    
+    # If Hero Moment or milestone generated a notice, publish to obligations topic
+    if res.get("hero_notice_id"):
+        hero = engine.settlement_notices.get(res["hero_notice_id"])
+        if hero:
+            publish_obligation_notice(hero)
+
     if _loop and _loop.is_running():
         asyncio.run_coroutine_threadsafe(
             ws_manager.broadcast({
@@ -78,7 +101,23 @@ def on_kafka_event(event: RoyaltyEvent):
         )
 
 
+def on_obligation_received(notice: SettlementNotice):
+    """Callback when a verified obligation arrives from Confluent Cloud obligations topic."""
+    logger.info(f"Obligation consumed from Confluent: {notice.notice_id} (status={notice.status.value})")
+    if _loop and _loop.is_running():
+        asyncio.run_coroutine_threadsafe(
+            ws_manager.broadcast({
+                "type": "OBLIGATION_STREAMED",
+                "notice": notice.model_dump(mode="json"),
+                "audit_verification": notice.verify_audit_integrity(),
+                "topic": settings.CONFLUENT_OBLIGATIONS_TOPIC,
+            }),
+            _loop,
+        )
+
+
 consumer_thread = ConfluentConsumerThread(on_event_received=on_kafka_event)
+obligations_consumer_thread = ObligationsConsumerThread(on_notice_received=on_obligation_received)
 
 
 @asynccontextmanager
@@ -87,9 +126,11 @@ async def lifespan(app: FastAPI):
     _loop = asyncio.get_running_loop()
     demo_events_queue = create_curated_demo_stream()
     consumer_thread.start()
-    logger.info("Residual Live application started.")
+    obligations_consumer_thread.start()
+    logger.info("Residual Live application started with dual Confluent nervous system (events + obligations).")
     yield
     consumer_thread.stop()
+    obligations_consumer_thread.stop()
 
 
 app = FastAPI(title="Residual Live — Real-time Royalty Clearing", lifespan=lifespan)
@@ -195,6 +236,9 @@ async def approve_settlement(notice_id: str):
     if not approved:
         raise HTTPException(status_code=404, detail="Settlement notice not found")
 
+    # Publish approved status to obligations topic
+    publish_obligation_notice(approved)
+
     await ws_manager.broadcast({
         "type": "SETTLEMENT_APPROVED",
         "notice": approved.model_dump(mode="json"),
@@ -217,6 +261,11 @@ async def demo_step():
 
     # Process into engine immediately
     res = engine.process_event(event)
+
+    if res.get("hero_notice_id"):
+        hero = engine.settlement_notices.get(res["hero_notice_id"])
+        if hero:
+            publish_obligation_notice(hero)
 
     await ws_manager.broadcast({
         "type": "NEW_EVENT",

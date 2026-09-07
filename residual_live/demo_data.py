@@ -16,13 +16,56 @@ SAMPLE_TITLE_ID = "TITLE-ECHOES-2026"
 SAMPLE_TITLE_NAME = "Echoes of Eternity"
 SAMPLE_CONTRACT_ID = "AGR-SAG-DGA-2026-088"
 
+TITLE_2_ID = "TITLE-NEON-2026"
+TITLE_2_NAME = "Neon Horizon"
+TITLE_2_CONTRACT_ID = "AGR-DACH-AVOD-2026-042"
+
+TITLE_3_ID = "TITLE-QUANTUM-2026"
+TITLE_3_NAME = "Quantum Fallback"
+TITLE_3_CONTRACT_ID = "AGR-BROADCAST-GLOBAL-2026-019"
+
+TITLES = {
+    SAMPLE_TITLE_ID: {
+        "title_id": SAMPLE_TITLE_ID,
+        "title_name": SAMPLE_TITLE_NAME,
+        "contract_id": SAMPLE_CONTRACT_ID,
+        "licensor": "Sovereign Media Rights LLC",
+        "licensee": "Global Cinema Distribution Corp",
+        "primary": True,
+        "color": "indigo",
+    },
+    TITLE_2_ID: {
+        "title_id": TITLE_2_ID,
+        "title_name": TITLE_2_NAME,
+        "contract_id": TITLE_2_CONTRACT_ID,
+        "licensor": "Neon Pictures GmbH",
+        "licensee": "StreamDE Verwertungs GmbH",
+        "primary": False,
+        "color": "emerald",
+    },
+    TITLE_3_ID: {
+        "title_id": TITLE_3_ID,
+        "title_name": TITLE_3_NAME,
+        "contract_id": TITLE_3_CONTRACT_ID,
+        "licensor": "Quantum Film Partners Ltd",
+        "licensee": "Worldwide Broadcast Holdings Inc",
+        "primary": False,
+        "color": "amber",
+    },
+}
+
 
 def create_curated_demo_stream() -> List[RoyaltyEvent]:
-    """Generate a curated list of events designed to tip the 5,000,000 minute threshold."""
+    """
+    Generate a curated multi-title streaming sequence with 3 titles running in parallel.
+    First 6 events drive the Echoes of Eternity Hero Moment (crossing 5M mins),
+    followed immediately by the multi-title scaling beat with Neon Horizon (DACH AVOD/SVOD)
+    and Quantum Fallback (Worldwide Broadcast).
+    """
     now = datetime.now(timezone.utc)
     events = []
 
-    # 1. Baseline historical chunk (4,200,000 minutes)
+    # 1. Baseline historical chunk for Echoes (4,200,000 minutes)
     events.append(
         RoyaltyEvent(
             event_id="EV-DEMO-001-BASE",
@@ -32,36 +75,72 @@ def create_curated_demo_stream() -> List[RoyaltyEvent]:
             channel=UsageChannel.SVOD,
             territory=RightsTerritory.US,
             stream_minutes=Decimal("4200000"),
+            occurred_at=now - timedelta(hours=4),
+            licence_fee_currency="USD",
+        )
+    )
+
+    # 2. Echoes steady accrual (+250,000 -> 4,450,000 min)
+    events.append(
+        RoyaltyEvent(
+            event_id="EV-DEMO-002-STREAM",
+            title_id=SAMPLE_TITLE_ID,
+            title_name=SAMPLE_TITLE_NAME,
+            contract_id=SAMPLE_CONTRACT_ID,
+            channel=UsageChannel.SVOD,
+            territory=RightsTerritory.US,
+            stream_minutes=Decimal("250000"),
             occurred_at=now - timedelta(hours=3),
             licence_fee_currency="USD",
         )
     )
 
-    # 2. Steady streaming accrual leading up to threshold
-    increments = [
-        (Decimal("250000"), timedelta(hours=2, minutes=30)),
-        (Decimal("180000"), timedelta(hours=2)),
-        (Decimal("150000"), timedelta(hours=1, minutes=30)),
-        (Decimal("140000"), timedelta(hours=1)),
-    ]
-    # At this point: 4,200,000 + 250,000 + 180,000 + 150,000 + 140,000 = 4,920,000 minutes!
-
-    for idx, (mins, delta) in enumerate(increments, start=2):
-        events.append(
-            RoyaltyEvent(
-                event_id=f"EV-DEMO-{idx:03d}-STREAM",
-                title_id=SAMPLE_TITLE_ID,
-                title_name=SAMPLE_TITLE_NAME,
-                contract_id=SAMPLE_CONTRACT_ID,
-                channel=UsageChannel.SVOD,
-                territory=RightsTerritory.US,
-                stream_minutes=mins,
-                occurred_at=now - delta,
-                licence_fee_currency="USD",
-            )
+    # 3. Echoes steady accrual (+180,000 -> 4,630,000 min)
+    events.append(
+        RoyaltyEvent(
+            event_id="EV-DEMO-003-STREAM",
+            title_id=SAMPLE_TITLE_ID,
+            title_name=SAMPLE_TITLE_NAME,
+            contract_id=SAMPLE_CONTRACT_ID,
+            channel=UsageChannel.SVOD,
+            territory=RightsTerritory.US,
+            stream_minutes=Decimal("180000"),
+            occurred_at=now - timedelta(hours=2, minutes=30),
+            licence_fee_currency="USD",
         )
+    )
 
-    # 3. The Tipping Point Event (120,000 minutes -> crosses 5,000,000 -> 5,040,000 minutes!)
+    # 4. Echoes steady accrual (+150,000 -> 4,780,000 min)
+    events.append(
+        RoyaltyEvent(
+            event_id="EV-DEMO-004-STREAM",
+            title_id=SAMPLE_TITLE_ID,
+            title_name=SAMPLE_TITLE_NAME,
+            contract_id=SAMPLE_CONTRACT_ID,
+            channel=UsageChannel.SVOD,
+            territory=RightsTerritory.US,
+            stream_minutes=Decimal("150000"),
+            occurred_at=now - timedelta(hours=2),
+            licence_fee_currency="USD",
+        )
+    )
+
+    # 5. Echoes approaching threshold (+140,000 -> 4,920,000 min)
+    events.append(
+        RoyaltyEvent(
+            event_id="EV-DEMO-005-STREAM",
+            title_id=SAMPLE_TITLE_ID,
+            title_name=SAMPLE_TITLE_NAME,
+            contract_id=SAMPLE_CONTRACT_ID,
+            channel=UsageChannel.SVOD,
+            territory=RightsTerritory.US,
+            stream_minutes=Decimal("140000"),
+            occurred_at=now - timedelta(hours=1),
+            licence_fee_currency="USD",
+        )
+    )
+
+    # 6. THE TIPPING POINT (HERO MOMENT): +120,000 -> 5,040,000 min (crosses 5M threshold!)
     events.append(
         RoyaltyEvent(
             event_id="EV-DEMO-006-HERO-BREACH",
@@ -76,17 +155,79 @@ def create_curated_demo_stream() -> List[RoyaltyEvent]:
         )
     )
 
-    # 4. Post-threshold continuation
+    # 7. MULTI-TITLE SCALING: Neon Horizon AVOD stream in DACH (300,000 minutes)
     events.append(
         RoyaltyEvent(
-            event_id="EV-DEMO-007-POST-TRIGGER",
+            event_id="EV-DEMO-007-NEON-AVOD",
+            title_id=TITLE_2_ID,
+            title_name=TITLE_2_NAME,
+            contract_id=TITLE_2_CONTRACT_ID,
+            channel=UsageChannel.AVOD,
+            territory=RightsTerritory.DE,
+            stream_minutes=Decimal("300000"),
+            gross_revenue_reported=Decimal("18500.00"),
+            occurred_at=now - timedelta(minutes=12),
+            licence_fee_currency="EUR",
+        )
+    )
+
+    # 8. MULTI-TITLE SCALING: Quantum Fallback Global Broadcast (50 plays)
+    events.append(
+        RoyaltyEvent(
+            event_id="EV-DEMO-008-QFB-BCAST",
+            title_id=TITLE_3_ID,
+            title_name=TITLE_3_NAME,
+            contract_id=TITLE_3_CONTRACT_ID,
+            channel=UsageChannel.BROADCAST,
+            territory=RightsTerritory.ROW,
+            play_count=50,
+            occurred_at=now - timedelta(minutes=10),
+            licence_fee_currency="USD",
+        )
+    )
+
+    # 9. MULTI-TITLE SCALING: Neon Horizon SVOD stream in AT (120,000 minutes)
+    events.append(
+        RoyaltyEvent(
+            event_id="EV-DEMO-009-NEON-SVOD",
+            title_id=TITLE_2_ID,
+            title_name=TITLE_2_NAME,
+            contract_id=TITLE_2_CONTRACT_ID,
+            channel=UsageChannel.SVOD,
+            territory=RightsTerritory.AT,
+            stream_minutes=Decimal("120000"),
+            gross_revenue_reported=Decimal("9200.00"),
+            occurred_at=now - timedelta(minutes=7),
+            licence_fee_currency="EUR",
+        )
+    )
+
+    # 10. MULTI-TITLE SCALING: Quantum Fallback Broadcast (+30 plays)
+    events.append(
+        RoyaltyEvent(
+            event_id="EV-DEMO-010-QFB-BCAST",
+            title_id=TITLE_3_ID,
+            title_name=TITLE_3_NAME,
+            contract_id=TITLE_3_CONTRACT_ID,
+            channel=UsageChannel.BROADCAST,
+            territory=RightsTerritory.ROW,
+            play_count=30,
+            occurred_at=now - timedelta(minutes=4),
+            licence_fee_currency="USD",
+        )
+    )
+
+    # 11. Post-threshold continuation on Echoes (+85,000 -> 5,125,000 min)
+    events.append(
+        RoyaltyEvent(
+            event_id="EV-DEMO-011-POST-TRIGGER",
             title_id=SAMPLE_TITLE_ID,
             title_name=SAMPLE_TITLE_NAME,
             contract_id=SAMPLE_CONTRACT_ID,
             channel=UsageChannel.SVOD,
             territory=RightsTerritory.US,
             stream_minutes=Decimal("85000"),
-            occurred_at=now - timedelta(minutes=5),
+            occurred_at=now - timedelta(minutes=1),
             licence_fee_currency="USD",
         )
     )

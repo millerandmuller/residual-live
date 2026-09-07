@@ -66,14 +66,45 @@ class Money(BaseModel):
 # AuditHash — canonical SHA-256 fingerprint of any serialisable payload
 # ---------------------------------------------------------------------------
 
+# Increment this constant whenever the set of fields included in any hash
+# computation changes.  Stored alongside every hash so that verify() can
+# distinguish a legitimate schema migration from actual tampering.
+HASH_SCHEMA_VERSION = "v2"
+
+
 def compute_sha256(payload: dict[str, Any]) -> str:
     """
     Deterministic SHA-256 over a JSON-serialised dict.
 
-    Keys are sorted and floats/Decimals are converted to strings so the same
-    logical data always produces the same hash regardless of insertion order.
+    Hardening guarantees
+    --------------------
+    * ``__hash_schema_version__`` is injected into every payload so the hash
+      input is tied to the schema revision.  Changing covered fields requires
+      bumping ``HASH_SCHEMA_VERSION``, making silent schema-migration collisions
+      impossible.
+    * All values are serialised through an explicit type-dispatch encoder rather
+      than ``default=str``.  This prevents ``Decimal("1.10")`` and the bare
+      string ``"1.10"`` from mapping to the same bytes (the ``default=str``
+      path treats them identically).
+    * Keys are always sorted (``sort_keys=True``) for insertion-order
+      independence.
+    * The output is UTF-8 encoded with ``ensure_ascii=True`` to guarantee
+      byte-for-byte reproducibility across locales.
     """
-    canonical = json.dumps(payload, sort_keys=True, default=str, ensure_ascii=True)
+
+    def _encode(obj: Any) -> str:
+        if isinstance(obj, Decimal):
+            # Faithful representation preserving exact Decimal precision:
+            return f"decimal:{str(obj)}"
+        if hasattr(obj, "isoformat"):
+            # datetime / date — always include timezone marker.
+            return f"dt:{obj.isoformat()}"
+        # Everything else (str, int, …) is encoded natively by json.dumps.
+        raise TypeError(f"compute_sha256: unhandled type {type(obj)!r}")
+
+    versioned = dict(payload)
+    versioned["__hash_schema_version__"] = HASH_SCHEMA_VERSION
+    canonical = json.dumps(versioned, sort_keys=True, default=_encode, ensure_ascii=True)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 

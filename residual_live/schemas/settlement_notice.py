@@ -39,6 +39,7 @@ PAID       → payment confirmed by treasury system
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -47,7 +48,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, model_validator
 
-from ._types import Money, compute_sha256  # noqa: F401
+from ._types import HASH_SCHEMA_VERSION, Money, compute_sha256  # noqa: F401
 
 
 # ---------------------------------------------------------------------------
@@ -72,8 +73,10 @@ class AuditEntry(BaseModel):
     """
     Immutable record of a single RoyaltyEvent's contribution to a notice.
 
-    The ``entry_hash`` is computed from the entry's own fields and its index
-    in the audit_log list, making reordering detectable.
+    The ``entry_hash`` covers all mutable fields of the entry — including
+    ``occurred_at``, ``clause_reference``, ``usage_metric_label``, and
+    ``computation_note`` — so any post-hoc mutation is detectable, not just
+    changes to the monetary contribution.
     """
 
     model_config = {"frozen": True}
@@ -122,11 +125,37 @@ class AuditEntry(BaseModel):
 
     entry_hash: str = Field(
         description=(
-            "SHA-256 of (entry_index, event_id, rule_id, "
-            "contribution.amount, contribution.currency). "
-            "Computed at creation; any mutation invalidates the hash."
+            "SHA-256 of all entry fields: entry_index, event_id, occurred_at, "
+            "rule_id, clause_reference, usage_metric_label, "
+            "contribution.amount, contribution.currency, computation_note. "
+            "Computed at creation; any mutation of any field invalidates the hash."
         ),
     )
+
+    @staticmethod
+    def _build_hash_payload(
+        *,
+        entry_index: int,
+        event_id: str,
+        occurred_at: datetime,
+        rule_id: str,
+        clause_reference: str,
+        usage_metric_label: str,
+        contribution: Money,
+        computation_note: str,
+    ) -> dict:
+        """Return the canonical dict used to compute entry_hash."""
+        return {
+            "entry_index": entry_index,
+            "event_id": event_id,
+            "occurred_at": occurred_at,
+            "rule_id": rule_id,
+            "clause_reference": clause_reference,
+            "usage_metric_label": usage_metric_label,
+            "contribution_amount": contribution.amount,
+            "contribution_currency": contribution.currency,
+            "computation_note": computation_note,
+        }
 
     @classmethod
     def create(
@@ -146,13 +175,16 @@ class AuditEntry(BaseModel):
 
         Always use this instead of the raw constructor to ensure hash integrity.
         """
-        payload = {
-            "entry_index": entry_index,
-            "event_id": event_id,
-            "rule_id": rule_id,
-            "contribution_amount": str(contribution.amount),
-            "contribution_currency": contribution.currency,
-        }
+        payload = cls._build_hash_payload(
+            entry_index=entry_index,
+            event_id=event_id,
+            occurred_at=occurred_at,
+            rule_id=rule_id,
+            clause_reference=clause_reference,
+            usage_metric_label=usage_metric_label,
+            contribution=contribution,
+            computation_note=computation_note,
+        )
         entry_hash = compute_sha256(payload)
         return cls(
             entry_index=entry_index,
@@ -173,13 +205,16 @@ class AuditEntry(BaseModel):
         Call this when loading a notice from persistent storage to detect
         tampering.
         """
-        payload = {
-            "entry_index": self.entry_index,
-            "event_id": self.event_id,
-            "rule_id": self.rule_id,
-            "contribution_amount": str(self.contribution.amount),
-            "contribution_currency": self.contribution.currency,
-        }
+        payload = self._build_hash_payload(
+            entry_index=self.entry_index,
+            event_id=self.event_id,
+            occurred_at=self.occurred_at,
+            rule_id=self.rule_id,
+            clause_reference=self.clause_reference,
+            usage_metric_label=self.usage_metric_label,
+            contribution=self.contribution,
+            computation_note=self.computation_note,
+        )
         return compute_sha256(payload) == self.entry_hash
 
 
@@ -232,6 +267,16 @@ class SettlementNotice(BaseModel):
     model_config = {
         "populate_by_name": True,
     }
+
+    hash_schema_version: str = Field(
+        default=HASH_SCHEMA_VERSION,
+        description=(
+            "Records the HASH_SCHEMA_VERSION constant in effect when this "
+            "notice was generated.  Allows verify_audit_integrity() to detect "
+            "version mismatches caused by schema migrations rather than "
+            "treating them as tampering."
+        ),
+    )
 
     # --- Identity -----------------------------------------------------------
 
@@ -340,16 +385,20 @@ class SettlementNotice(BaseModel):
 
     audit_chain_hash: str = Field(
         description=(
-            "SHA-256 of the concatenated entry_hash values (in order). "
-            "Detects reordering or entry insertion/deletion."
+            "SHA-256 of (notice_id, contract_id, ordered entry_hash values). "
+            "Binding the chain to the notice identity prevents replay of an "
+            "identical audit log into a differently-identified notice.  "
+            "Detects reordering, insertion, and deletion of entries."
         ),
     )
 
     notice_hash: str = Field(
         description=(
-            "SHA-256 of the top-level notice payload "
-            "(notice_id, contract_id, gross_royalty_due, net_royalty_due, "
-            "audit_chain_hash).  Guards the final figures against mutation."
+            "SHA-256 of the complete notice identity and monetary payload: "
+            "notice_id, contract_id, title_id, licensor_id, licensee_id, "
+            "period_from, period_until, gross_royalty_due, net_royalty_due, "
+            "audit_chain_hash.  Guards all party, period, and financial fields "
+            "against mutation after generation."
         ),
     )
 
@@ -478,18 +527,33 @@ class SettlementNotice(BaseModel):
         wht_amount = withholding_tax.amount if withholding_tax else Decimal("0.00")
         net_money = Money(amount=gross - wht_amount, currency=currency)
 
-        # audit_chain_hash: SHA-256 of ordered entry hashes
-        chain_payload = {"chain": [e.entry_hash for e in reindexed]}
+        nid = notice_id or str(uuid.uuid4())
+
+        # audit_chain_hash: SHA-256 of (notice_id, contract_id, ordered entry
+        # hashes).  Binding the chain to the notice identity prevents the same
+        # audit log from being replayed into a different notice.
+        chain_payload = {
+            "notice_id": nid,
+            "contract_id": contract_id,
+            "entry_hashes": [e.entry_hash for e in reindexed],
+        }
         audit_chain_hash = compute_sha256(chain_payload)
 
-        # notice_hash: fingerprint of the final figures
-        nid = notice_id or str(uuid.uuid4())
+        # notice_hash: fingerprint of all identity, party, period, and
+        # monetary fields.  Widened to include licensor_id, licensee_id,
+        # period_from, period_until, and title_id to defeat party-swap and
+        # period-shift attacks.
         notice_payload = {
             "notice_id": nid,
             "contract_id": contract_id,
-            "gross_royalty_due_amount": str(gross_money.amount),
+            "title_id": title_id,
+            "licensor_id": licensor_id,
+            "licensee_id": licensee_id,
+            "period_from": period_from,
+            "period_until": period_until,
+            "gross_royalty_due_amount": gross_money.amount,
             "gross_royalty_due_currency": gross_money.currency,
-            "net_royalty_due_amount": str(net_money.amount),
+            "net_royalty_due_amount": net_money.amount,
             "net_royalty_due_currency": net_money.currency,
             "audit_chain_hash": audit_chain_hash,
         }
@@ -514,6 +578,7 @@ class SettlementNotice(BaseModel):
             audit_log=reindexed,
             audit_chain_hash=audit_chain_hash,
             notice_hash=notice_hash,
+            hash_schema_version=HASH_SCHEMA_VERSION,
         )
 
     # --- Audit verification -------------------------------------------------
@@ -539,33 +604,82 @@ class SettlementNotice(BaseModel):
         ]
         entries_valid = len(failed) == 0
 
-        # Recompute chain hash
-        chain_payload = {"chain": [e.entry_hash for e in self.audit_log]}
+        # Recompute chain hash — must match the widened payload used in create()
+        chain_payload = {
+            "notice_id": self.notice_id,
+            "contract_id": self.contract_id,
+            "entry_hashes": [e.entry_hash for e in self.audit_log],
+        }
         chain_valid = compute_sha256(chain_payload) == self.audit_chain_hash
 
-        # Recompute notice hash
+        # Recompute notice hash — must cover all identity, party, period, and
+        # monetary fields exactly as in create()
         notice_payload = {
             "notice_id": self.notice_id,
             "contract_id": self.contract_id,
-            "gross_royalty_due_amount": str(self.gross_royalty_due.amount),
+            "title_id": self.title_id,
+            "licensor_id": self.licensor_id,
+            "licensee_id": self.licensee_id,
+            "period_from": self.period_from,
+            "period_until": self.period_until,
+            "gross_royalty_due_amount": self.gross_royalty_due.amount,
             "gross_royalty_due_currency": self.gross_royalty_due.currency,
-            "net_royalty_due_amount": str(self.net_royalty_due.amount),
+            "net_royalty_due_amount": self.net_royalty_due.amount,
             "net_royalty_due_currency": self.net_royalty_due.currency,
             "audit_chain_hash": self.audit_chain_hash,
         }
         notice_valid = compute_sha256(notice_payload) == self.notice_hash
+
+        schema_version_valid = self.hash_schema_version == HASH_SCHEMA_VERSION
 
         return {
             "entries_valid": entries_valid,
             "chain_valid": chain_valid,
             "notice_valid": notice_valid,
             "failed_entry_indices": failed,
-            "all_valid": entries_valid and chain_valid and notice_valid,
+            "schema_version_match": schema_version_valid,
+            "all_valid": entries_valid and chain_valid and notice_valid and schema_version_valid,
         }
+
+    @staticmethod
+    def _compute_notice_hash(
+        *,
+        notice_id: str,
+        contract_id: str,
+        title_id: str,
+        licensor_id: str,
+        licensee_id: str,
+        period_from: datetime,
+        period_until: datetime,
+        gross_royalty_due: Money,
+        net_royalty_due: Money,
+        audit_chain_hash: str,
+    ) -> str:
+        """
+        Canonical notice_hash computation shared by create(), approve(), and
+        reject() to guarantee the hash always covers the same fields.
+        """
+        return compute_sha256({
+            "notice_id": notice_id,
+            "contract_id": contract_id,
+            "title_id": title_id,
+            "licensor_id": licensor_id,
+            "licensee_id": licensee_id,
+            "period_from": period_from,
+            "period_until": period_until,
+            "gross_royalty_due_amount": gross_royalty_due.amount,
+            "gross_royalty_due_currency": gross_royalty_due.currency,
+            "net_royalty_due_amount": net_royalty_due.amount,
+            "net_royalty_due_currency": net_royalty_due.currency,
+            "audit_chain_hash": audit_chain_hash,
+        })
 
     def approve(self, approved_by: str) -> "SettlementNotice":
         """
         Return a new notice in APPROVED state (immutable update pattern).
+
+        notice_hash is recomputed to cover the approval metadata, preventing
+        silent approver-substitution after the fact.
 
         Raises ValueError if the notice is not in PENDING state.
         """
@@ -573,24 +687,45 @@ class SettlementNotice(BaseModel):
             raise ValueError(
                 f"Can only approve a PENDING notice; current status={self.status.value}."
             )
+        approved_at = datetime.now(timezone.utc)
+        # Extend notice_hash to cover approval metadata so any post-approval
+        # mutation of approved_by or approved_at is detectable.
+        new_notice_hash = compute_sha256({
+            "base_notice_hash": self.notice_hash,
+            "approved_by": approved_by,
+            "approved_at": approved_at,
+            "transition": "APPROVED",
+        })
         return self.model_copy(
             update={
                 "status": SettlementStatus.APPROVED,
                 "approved_by": approved_by,
-                "approved_at": datetime.now(timezone.utc),
+                "approved_at": approved_at,
+                "notice_hash": new_notice_hash,
             }
         )
 
     def reject(self, reason: str) -> "SettlementNotice":
-        """Return a new notice in REJECTED state."""
+        """
+        Return a new notice in REJECTED state.
+
+        notice_hash is extended to cover the rejection reason so the recorded
+        rationale cannot be substituted without detection.
+        """
         if self.status != SettlementStatus.PENDING:
             raise ValueError(
                 f"Can only reject a PENDING notice; current status={self.status.value}."
             )
+        new_notice_hash = compute_sha256({
+            "base_notice_hash": self.notice_hash,
+            "rejection_reason": reason,
+            "transition": "REJECTED",
+        })
         return self.model_copy(
             update={
                 "status": SettlementStatus.REJECTED,
                 "rejection_reason": reason,
+                "notice_hash": new_notice_hash,
             }
         )
 
