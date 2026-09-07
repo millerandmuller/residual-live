@@ -13,7 +13,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from fastapi import (
     FastAPI,
