@@ -46,8 +46,8 @@ class ConfluentProducer:
 
     def __init__(self):
         if not settings.has_confluent_credentials():
-            logger.warning("Confluent credentials missing — producer initialized in mock mode.")
-            self._producer = None
+            logger.error("Confluent credentials missing — producer must hard fail.")
+            raise ValueError("Confluent credentials missing.")
         else:
             conf = get_kafka_config(is_consumer=False)
             self._producer = Producer(conf)
@@ -57,22 +57,18 @@ class ConfluentProducer:
         payload = event.model_dump_json()
         key = f"{event.title_id}:{event.event_id}"
 
-        if self._producer:
-            try:
-                self._producer.produce(
-                    t,
-                    key=key.encode("utf-8"),
-                    value=payload.encode("utf-8"),
-                )
-                self._producer.flush(timeout=5.0)
-                logger.info(f"Produced event {event.event_id} to {t}")
-                return True
-            except Exception as e:
-                logger.error(f"Failed to produce event {event.event_id}: {e}")
-                return False
-        else:
-            logger.info(f"[MOCK PRODUCE] Event {event.event_id} -> {t}")
+        try:
+            self._producer.produce(
+                t,
+                key=key.encode("utf-8"),
+                value=payload.encode("utf-8"),
+            )
+            self._producer.flush(timeout=5.0)
+            logger.info(f"Produced event {event.event_id} to {t}")
             return True
+        except Exception as e:
+            logger.error(f"Failed to produce event {event.event_id}: {e}")
+            return False
 
     def produce_batch(self, events: List[RoyaltyEvent], topic: Optional[str] = None) -> int:
         success = 0
@@ -101,10 +97,8 @@ class ConfluentConsumerThread(threading.Thread):
     def run(self):
         self._running = True
         if not settings.has_confluent_credentials():
-            logger.warning("Confluent credentials missing. Consumer thread will idle.")
-            while self._running:
-                time.sleep(1.0)
-            return
+            logger.error("Confluent credentials missing. Consumer thread must hard fail.")
+            raise ValueError("Confluent credentials missing.")
 
         conf = get_kafka_config(is_consumer=True, group_id=self.group_id)
         try:

@@ -29,8 +29,8 @@ class Money(BaseModel):
     model_config = {"frozen": True}
 
     amount: Decimal = Field(
-        description="Exact amount, rounded to 2 decimal places.",
-        examples=[Decimal("12345.67")],
+        description="Exact amount, rounded to 4 decimal places.",
+        examples=[Decimal("12345.6789")],
     )
     currency: str = Field(
         min_length=3,
@@ -44,7 +44,7 @@ class Money(BaseModel):
     @classmethod
     def normalise_to_two_decimals(cls, v: Any) -> Decimal:
         d = Decimal(str(v))
-        return d.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return d.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
     @field_validator("currency", mode="before")
     @classmethod
@@ -59,7 +59,7 @@ class Money(BaseModel):
         return Money(amount=self.amount + other.amount, currency=self.currency)
 
     def __repr__(self) -> str:
-        return f"{self.currency} {self.amount:,.2f}"
+        return f"{self.currency} {self.amount:,.4f}"
 
 
 # ---------------------------------------------------------------------------

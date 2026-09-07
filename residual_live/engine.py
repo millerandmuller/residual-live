@@ -50,7 +50,7 @@ SAMPLE_RULES = [
     ContractRule(
         rule_id="RULE-CLAUSE-4.2-HERO-THRESHOLD",
         contract_id=SAMPLE_CONTRACT_ID,
-        clause_reference="Clause 4.2 (High-Volume Stream Escalator & Milestone)",
+        clause_reference="Clause 4.2: If the Title achieves 5,000,000 or more stream minutes in the US and ROW territories, Licensee shall pay Licensor a fixed one-time milestone bonus of $25,000.",
         rule_type=RuleType.THRESHOLD_TRIGGER,
         channels=[UsageChannel.SVOD],
         territories=[RightsTerritory.US, RightsTerritory.ROW],
@@ -129,16 +129,45 @@ class RoyaltyEngine:
 
             # Trigger Hero Settlement Notice & Escalator Bonus ($25,000 Milestone Bonus)
             hero_rule = next((r for r in self.rules if r.rule_type == RuleType.THRESHOLD_TRIGGER), None)
-            bonus_amount = Decimal("25000.00")
+            
+            clause_text = hero_rule.clause_reference if hero_rule else "Clause 4.2"
+            
+            # Deterministic truth from ContractRule
+            if hero_rule and hero_rule.unit_rate and hero_rule.threshold_value and hero_rule.apply_rate_to_full_accumulation:
+                true_bonus_amount = hero_rule.threshold_value * hero_rule.unit_rate.amount
+            else:
+                true_bonus_amount = Decimal("25000.00")
+
+            # Agent 1: Klausel-Leser zur Vertragsanalyse (Cross-Check)
+            from .agents import analyze_contract_clause, generate_settlement_message
+            analysis = analyze_contract_clause(clause_text)
+            agent_bonus_amount = Decimal(str(analysis.bonus_amount)) if analysis.is_applicable else Decimal("0.00")
+            
+            # Governance Cross-Check
+            if true_bonus_amount == agent_bonus_amount:
+                verification_flag = "[VERIFIED: agent-checked against clause]"
+            else:
+                verification_flag = f"[WARN: agent extraction mismatch - agent found ${agent_bonus_amount}, rule dictates ${true_bonus_amount}]"
+                
+            bonus_amount = true_bonus_amount
+                
+            # Agent 2: Bezifferung/Mitteilungserstellung
+            settlement_message = generate_settlement_message(
+                clause_text=clause_text,
+                total_stream_minutes=int(self.total_stream_minutes),
+                bonus_amount=bonus_amount,
+                verification_flag=verification_flag
+            )
+
             milestone_entry = AuditEntry.create(
                 entry_index=len(self.audit_entries),
                 event_id=f"TRIGGER-{event.event_id}",
                 occurred_at=datetime.now(timezone.utc),
                 rule_id=hero_rule.rule_id if hero_rule else "RULE-HERO",
-                clause_reference=hero_rule.clause_reference if hero_rule else "Clause 4.2",
+                clause_reference=clause_text,
                 usage_metric_label=f"{self.total_stream_minutes} stream_minutes threshold reached",
                 contribution=Money(amount=bonus_amount, currency="USD"),
-                computation_note=f"THRESHOLD BREACH: {self.total_stream_minutes:,} min crossed. Fixed $25,000 milestone bonus.",
+                computation_note=f"ADK Agent: {settlement_message}",
             )
             self.audit_entries.append(milestone_entry)
             self.current_accrued_royalty += bonus_amount

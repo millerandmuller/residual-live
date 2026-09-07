@@ -32,7 +32,7 @@ class Settings:
 
     # Google Gemini / ADK Configuration
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.1-pro-preview")
 
     # IBM Bob Audit Metadata
     BOB_TASK_ID: str = "e1935a4d4dfe486aa3290acaa2f66f57"
