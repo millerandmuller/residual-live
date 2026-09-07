@@ -39,6 +39,9 @@ class Settings:
     BOB_TASK_ID: str = "e1935a4d4dfe486aa3290acaa2f66f57"
     BOB_AUDIT_LEDGER: str = "bob-runs/coins-ledger.md"
 
+    # Demo Key Authorization for state-mutating endpoints
+    DEMO_KEY: str = os.getenv("DEMO_KEY", "residual-live-jury-2026")
+
     # Server Configuration
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "8000"))

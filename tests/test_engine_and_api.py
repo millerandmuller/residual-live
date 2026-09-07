@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from residual_live.app import app
+from residual_live.config import settings
 from residual_live.demo_data import create_curated_demo_stream
 from residual_live.engine import RoyaltyEngine
 from residual_live.schemas import RightsTerritory, RoyaltyEvent, SettlementStatus, UsageChannel
@@ -71,14 +72,21 @@ def test_api_status_and_demo_endpoints(client):
     assert bob_data["task_id"] == "e1935a4d4dfe486aa3290acaa2f66f57"
     assert bob_data["tests_passed"] == 52
 
-    # Test demo step
-    res_step = client.post("/api/demo/step")
+    # Test unauthorized POST without X-Demo-Key
+    res_unauth = client.post("/api/demo/step")
+    assert res_unauth.status_code == 401
+    res_bad = client.post("/api/demo/step", headers={"X-Demo-Key": "wrong-key"})
+    assert res_bad.status_code == 401
+
+    # Test authorized demo step
+    headers = {"X-Demo-Key": settings.DEMO_KEY}
+    res_step = client.post("/api/demo/step", headers=headers)
     assert res_step.status_code == 200
     step_data = res_step.json()
     assert "processed_event" in step_data
 
-    # Test reset
-    res_reset = client.post("/api/demo/reset")
+    # Test authorized reset
+    res_reset = client.post("/api/demo/reset", headers=headers)
     assert res_reset.status_code == 200
     reset_data = res_reset.json()
     assert reset_data["summary"]["total_stream_minutes"] == 0

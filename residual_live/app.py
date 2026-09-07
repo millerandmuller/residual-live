@@ -15,7 +15,15 @@ import os
 from pathlib import Path
 from typing import List
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    WebSocket,
+    WebSocketDisconnect,
+    Depends,
+    Security,
+)
+from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -171,6 +179,21 @@ class ContractIntakeRequest(BaseModel):
     contract_text: str
 
 
+api_key_header = APIKeyHeader(name="X-Demo-Key", auto_error=False)
+
+
+def verify_demo_key(x_demo_key: Optional[str] = Security(api_key_header)):
+    """Verify demo authorization key on state-mutating POST endpoints."""
+    expected = (settings.DEMO_KEY or "").strip()
+    if expected:
+        if not x_demo_key or x_demo_key.strip() != expected:
+            raise HTTPException(
+                status_code=401,
+                detail="Unauthorized: Missing or invalid X-Demo-Key header. Provide X-Demo-Key or append #key=... to the URL.",
+            )
+    return x_demo_key
+
+
 @app.get("/api/contract/sample")
 def get_sample_contract():
     """Return curated sample agreement modeled on SAG-AFTRA's public residual terms."""
@@ -178,7 +201,7 @@ def get_sample_contract():
     return {"sample_text": SAMPLE_SAG_AFTRA_AGREEMENT.strip()}
 
 
-@app.post("/api/contract/intake")
+@app.post("/api/contract/intake", dependencies=[Depends(verify_demo_key)])
 async def contract_intake(req: ContractIntakeRequest):
     """Run Google ADK Contract-Intake-Agent to extract rules from agreement text."""
     try:
@@ -230,7 +253,7 @@ def get_settlement_detail(notice_id: str):
     return data
 
 
-@app.post("/api/settlements/{notice_id}/approve")
+@app.post("/api/settlements/{notice_id}/approve", dependencies=[Depends(verify_demo_key)])
 async def approve_settlement(notice_id: str):
     approved = engine.approve_settlement(notice_id, approved_by="Chris (Rights Administrator)")
     if not approved:
@@ -247,7 +270,7 @@ async def approve_settlement(notice_id: str):
     return approved.model_dump(mode="json")
 
 
-@app.post("/api/demo/step")
+@app.post("/api/demo/step", dependencies=[Depends(verify_demo_key)])
 async def demo_step():
     """Simulate next curated demo event step (for live demo video recording)."""
     global demo_events_queue
@@ -281,7 +304,7 @@ async def demo_step():
     }
 
 
-@app.post("/api/demo/reset")
+@app.post("/api/demo/reset", dependencies=[Depends(verify_demo_key)])
 async def demo_reset():
     """Reset engine state to initial blank slate."""
     global engine, demo_events_queue
