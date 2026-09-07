@@ -19,6 +19,7 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from .confluent_client import ConfluentConsumerThread, ConfluentProducer
 from .demo_data import create_curated_demo_stream
@@ -123,6 +124,46 @@ def get_status():
 @app.get("/api/rules")
 def get_rules():
     return [r.model_dump(mode="json") for r in engine.rules]
+
+
+class ContractIntakeRequest(BaseModel):
+    contract_text: str
+
+
+@app.get("/api/contract/sample")
+def get_sample_contract():
+    """Return authentic public SAG-AFTRA sample contract clause text."""
+    from .demo_data import SAMPLE_SAG_AFTRA_AGREEMENT
+    return {"sample_text": SAMPLE_SAG_AFTRA_AGREEMENT.strip()}
+
+
+@app.post("/api/contract/intake")
+async def contract_intake(req: ContractIntakeRequest):
+    """Run Google ADK Contract-Intake-Agent to extract rules from agreement text."""
+    try:
+        from .agents import intake_contract_document, build_contract_rules_from_intake
+        intake_output = intake_contract_document(req.contract_text)
+        new_rules = build_contract_rules_from_intake(intake_output)
+        
+        # Update rules in engine
+        engine.rules = new_rules
+        
+        # Broadcast update over WebSockets
+        await ws_manager.broadcast({
+            "type": "RULES_UPDATED",
+            "contract": intake_output.model_dump(mode="json"),
+            "rules": [r.model_dump(mode="json") for r in engine.rules],
+        })
+        
+        return {
+            "status": "success",
+            "contract": intake_output.model_dump(mode="json"),
+            "rules_count": len(engine.rules),
+            "rules": [r.model_dump(mode="json") for r in engine.rules],
+        }
+    except Exception as e:
+        logger.error(f"Contract intake error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/events")

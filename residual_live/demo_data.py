@@ -92,3 +92,22 @@ def create_curated_demo_stream() -> List[RoyaltyEvent]:
     )
 
     return events
+
+
+SAMPLE_SAG_AFTRA_AGREEMENT = """
+SAG-AFTRA STANDARD HIGH-BUDGET SVOD RESIDUALS SCHEDULE (2026 EXHIBIT A)
+Master License Contract: AGR-SAG-DGA-2026-088
+Covered Title Property: "Echoes of Eternity"
+Licensor Entity: Sovereign Media Rights LLC
+Licensee Distributor: Global Cinema Distribution Corp
+Territory: United States & Worldwide Streaming Rights
+Governing Guild: SAG-AFTRA
+
+SECTION 4. STREAMING EXPLOITATION & RESIDUAL ACCRUAL SCHEDULE
+4.1 Base SVOD Stream Rate:
+For all subscriber video-on-demand (SVOD) streaming exploitation within the United States, Licensee shall pay to Licensor a base residual rate of USD 0.0015 per subscriber stream minute ($0.0015/stream_minute) accrued continuously from the first minute of exhibition.
+
+4.2 High-Volume Exhibition Milestone Escalator:
+In the event that aggregate streaming exhibition of the Title exceeds 5,000,000 subscriber stream minutes across authorized platforms during any single accounting cycle, Licensee shall immediately disburse to Licensor a fixed milestone bonus of USD 25,000.00. Notice of threshold attainment and settlement disbursement shall be rendered in real-time.
+"""
+
