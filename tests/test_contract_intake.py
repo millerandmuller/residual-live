@@ -73,10 +73,30 @@ def test_api_contract_sample_endpoint(client):
     assert "Clause 4.1" in data["sample_text"] or "4.1" in data["sample_text"]
 
 
-def test_api_contract_intake_e2e(client):
-    """Test full e2e contract intake endpoint running Google ADK agent."""
+from residual_live.config import settings
+
+
+def test_api_contract_intake_auth(client):
+    """Verify that POST /api/contract/intake requires X-Demo-Key header."""
     res = client.post(
         "/api/contract/intake",
+        json={"contract_text": SAMPLE_SAG_AFTRA_AGREEMENT},
+    )
+    assert res.status_code == 401
+
+    res_invalid = client.post(
+        "/api/contract/intake",
+        headers={"X-Demo-Key": "wrong-key"},
+        json={"contract_text": SAMPLE_SAG_AFTRA_AGREEMENT},
+    )
+    assert res_invalid.status_code == 401
+
+
+def test_api_contract_intake_e2e(client):
+    """Test full e2e contract intake endpoint running Google ADK agent with valid Demo Key."""
+    res = client.post(
+        "/api/contract/intake",
+        headers={"X-Demo-Key": settings.DEMO_KEY},
         json={"contract_text": SAMPLE_SAG_AFTRA_AGREEMENT},
     )
     assert res.status_code == 200
@@ -85,3 +105,4 @@ def test_api_contract_intake_e2e(client):
     assert data["rules_count"] >= 2
     assert "contract" in data
     assert len(data["rules"]) >= 2
+
