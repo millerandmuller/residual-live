@@ -85,9 +85,23 @@ class RoyaltyEngine:
         self.threshold_triggered: bool = False
         self.hero_moment_occurred: bool = False
         self.hero_notice_id: Optional[str] = None
+        self.processed_event_ids: set[str] = set()
 
     def process_event(self, event: RoyaltyEvent) -> Dict[str, any]:
         """Process a single incoming event, update running tally, and check threshold."""
+        if event.event_id in self.processed_event_ids:
+            return {
+                "event_id": event.event_id,
+                "total_stream_minutes": int(self.total_stream_minutes),
+                "threshold_progress_pct": min(100.0, float(self.total_stream_minutes / self.threshold_target * 100)),
+                "current_accrued_royalty": float(self.current_accrued_royalty),
+                "threshold_triggered": self.threshold_triggered,
+                "newly_triggered": False,
+                "hero_notice_id": self.hero_notice_id,
+                "duplicate_ignored": True,
+            }
+        self.processed_event_ids.add(event.event_id)
+
         self.events.append(event)
         self.total_events_count += 1
 

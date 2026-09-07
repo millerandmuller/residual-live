@@ -82,3 +82,21 @@ def test_api_status_and_demo_endpoints(client):
     assert res_reset.status_code == 200
     reset_data = res_reset.json()
     assert reset_data["summary"]["total_stream_minutes"] == 0
+
+
+def test_engine_idempotency():
+    engine = RoyaltyEngine()
+    events = create_curated_demo_stream()
+    ev0 = events[0]
+
+    # Process first time
+    res1 = engine.process_event(ev0)
+    assert res1.get("duplicate_ignored") is not True
+    assert engine.total_stream_minutes == ev0.stream_minutes
+
+    # Process same event second time (idempotency guard)
+    res2 = engine.process_event(ev0)
+    assert res2.get("duplicate_ignored") is True
+    assert engine.total_stream_minutes == ev0.stream_minutes
+    assert len(engine.events) == 1
+

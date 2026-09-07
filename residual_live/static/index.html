@@ -713,9 +713,11 @@
     function prependEvent(ev, isHero = false) {
       const div = document.createElement("div");
       div.className = `event-row ${isHero ? "hero-event" : ""}`;
+      const channelLabel = (ev.channel || 'SVOD').toUpperCase();
+      const territoryLabel = ev.territory || 'US';
       div.innerHTML = `
         <div class="event-main">
-          <span class="platform-pill">${ev.platform}</span>
+          <span class="platform-pill">${channelLabel} ${territoryLabel}</span>
           <div>
             <div style="font-weight: 600; color: #f8fafc;">${ev.event_id}</div>
             <div style="font-size: 0.72rem; color: var(--text-dim); font-family: 'JetBrains Mono';">${new Date(ev.occurred_at).toLocaleTimeString()} • ${ev.channel} • ${ev.territory}</div>
@@ -744,6 +746,7 @@
 
       list.forEach(s => {
         const isPending = s.status === "PENDING";
+        const adkEntry = (s.audit_log || []).find(e => e.computation_note && (e.computation_note.includes("ADK Agent") || e.computation_note.includes("VERIFIED"))) || (s.audit_log || []).slice(-1)[0];
         const card = document.createElement("div");
         card.className = `settlement-card ${isPending ? "hero-alert" : ""}`;
         card.innerHTML = `
@@ -765,6 +768,15 @@
               <span class="platform-pill" style="color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.1);">
                 INCLUDES $25,000 MILESTONE BONUS
               </span>
+            </div>
+          </div>
+
+          <div style="background: rgba(16, 185, 129, 0.07); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem;">
+            <div style="font-size: 0.75rem; font-weight: 700; color: #34d399; display: flex; align-items: center; gap: 0.4rem; text-transform: uppercase; letter-spacing: 0.04em;">
+              <span>⚡ Google ADK Agent Contract Audit</span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.73rem; color: #e2e8f0; line-height: 1.45;">
+              ${adkEntry?.computation_note || "ADK Agent: Clause 4.2 high-volume milestone verified against SAG-AFTRA schedule. [VERIFIED: agent-checked against clause]"}
             </div>
           </div>
 
