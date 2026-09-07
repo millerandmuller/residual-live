@@ -758,7 +758,7 @@
             <div>
               <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Total Net Payable</div>
               <div style="font-size: 1.8rem; font-weight: 700; color: #f8fafc; font-family: 'JetBrains Mono';">
-                $${s.net_royalty_due.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                $${(parseFloat(s.net_royalty_due?.amount || s.net_royalty_due || 0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
               </div>
             </div>
             <div style="text-align: right;">
@@ -769,9 +769,9 @@
           </div>
 
           <div class="hash-chain-box">
-            <div class="hash-row"><span>Audit Entries:</span> <span class="hash-val">${s.audit_chain.length} events hashed</span></div>
-            <div class="hash-row"><span>Chain Hash:</span> <span class="hash-val">${s.audit_chain_hash.slice(0, 24)}…</span></div>
-            <div class="hash-row"><span>Notice Hash:</span> <span class="hash-val">${s.notice_hash.slice(0, 24)}…</span></div>
+            <div class="hash-row"><span>Audit Entries:</span> <span class="hash-val">${(s.audit_log || []).length} events hashed</span></div>
+            <div class="hash-row"><span>Chain Hash:</span> <span class="hash-val">${(s.audit_chain_hash || '').slice(0, 24)}…</span></div>
+            <div class="hash-row"><span>Notice Hash:</span> <span class="hash-val">${(s.notice_hash || '').slice(0, 24)}…</span></div>
             ${s.approved_by ? `<div class="hash-row"><span>Signed By:</span> <span class="hash-val" style="color: var(--accent-emerald);">${s.approved_by} (${new Date(s.approved_at).toLocaleTimeString()})</span></div>` : ""}
           </div>
 
