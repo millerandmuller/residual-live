@@ -173,7 +173,7 @@ class ContractIntakeRequest(BaseModel):
 
 @app.get("/api/contract/sample")
 def get_sample_contract():
-    """Return authentic public SAG-AFTRA sample contract clause text."""
+    """Return curated sample agreement modeled on SAG-AFTRA's public residual terms."""
     from .demo_data import SAMPLE_SAG_AFTRA_AGREEMENT
     return {"sample_text": SAMPLE_SAG_AFTRA_AGREEMENT.strip()}
 

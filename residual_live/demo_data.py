@@ -235,6 +235,7 @@ def create_curated_demo_stream() -> List[RoyaltyEvent]:
     return events
 
 
+# [KURATIERT] Sample agreement modeled on SAG-AFTRA's public residual terms (fictional parties)
 SAMPLE_SAG_AFTRA_AGREEMENT = """
 SAG-AFTRA STANDARD HIGH-BUDGET SVOD RESIDUALS SCHEDULE (2026 EXHIBIT A)
 Master License Contract: AGR-SAG-DGA-2026-088

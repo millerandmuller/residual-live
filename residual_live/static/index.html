@@ -631,9 +631,9 @@
         </div>
       </div>
       <div style="display: flex; gap: 0.75rem; align-items: center;">
-        <button class="btn btn-outline" id="btn-intake" onclick="runContractIntake()" style="border-color: rgba(59, 130, 246, 0.4); color: #93c5fd; font-size: 0.8rem;">
+        <button class="btn btn-outline" id="btn-intake" onclick="runContractIntake()" title="Sample agreement modeled on SAG-AFTRA's public residual terms" style="border-color: rgba(59, 130, 246, 0.4); color: #93c5fd; font-size: 0.8rem;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-          <span>Cold Open: ADK Contract Intake</span>
+          <span>Cold Open: ADK Contract Intake [Sample]</span>
         </button>
         <span class="platform-pill" style="color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1);">
           90/90 AUDIT TESTS VALIDATED
@@ -1099,7 +1099,7 @@
         });
         const data = await res.json();
         if (data.status === "success") {
-          btn.innerHTML = `✓ ${data.rules_count} Rules Extracted (SAG-AFTRA)`;
+          btn.innerHTML = `✓ ${data.rules_count} Rules Extracted (SAG-AFTRA Sample)`;
           btn.style.borderColor = "var(--accent-emerald)";
           btn.style.color = "var(--accent-emerald)";
         }
