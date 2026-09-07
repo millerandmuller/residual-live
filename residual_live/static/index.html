@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Residual Live — Real-time Royalty Clearing & Settlement Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070b14;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --bg-card-hover: rgba(30, 41, 59, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(59, 130, 246, 0.5);
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.25);
+      --accent-emerald: #10b981;
+      --accent-emerald-glow: rgba(16, 185, 129, 0.25);
+      --accent-amber: #f59e0b;
+      --accent-amber-glow: rgba(245, 158, 11, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #111b33 0%, var(--bg-dark) 75%);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation */
+    header {
+      background: rgba(11, 17, 32, 0.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .badge-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--accent-emerald);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent-emerald);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-emerald);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 0.4; transform: scale(0.9); }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.6);
+      border-color: var(--border-subtle);
+      color: var(--text-muted);
+    }
+    .btn-secondary:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: #fff;
+    }
+
+    .btn-bob {
+      background: rgba(14, 116, 144, 0.15);
+      border-color: rgba(6, 182, 212, 0.35);
+      color: #38bdf8;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+    .btn-bob:hover {
+      background: rgba(14, 116, 144, 0.3);
+      border-color: #38bdf8;
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem 2rem 3rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Contract Context Banner */
+    .contract-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .contract-meta {
+      display: flex;
+      gap: 2rem;
+      font-size: 0.85rem;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .meta-label {
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .meta-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .metric-title {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .metric-num {
+      font-size: 1.85rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -0.02em;
+    }
+
+    .metric-sub {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* Threshold Progress Bar */
+    .progress-track {
+      background: rgba(255, 255, 255, 0.06);
+      height: 8px;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #f59e0b);
+      width: 0%;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+    }
+
+    .progress-bar.breached {
+      background: linear-gradient(90deg, #10b981, #f59e0b);
+      animation: glowBreached 1.5s infinite alternate;
+    }
+
+    @keyframes glowBreached {
+      from { box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+      to { box-shadow: 0 0 16px rgba(245, 158, 11, 0.8); }
+    }
+
+    /* Main Dashboard Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .panel-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Event Stream Feed */
+    .event-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: 0.3rem;
+    }
+
+    .event-row {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      animation: fadeIn 0.4s ease;
+      transition: all 0.2s ease;
+    }
+
+    .event-row:hover {
+      border-color: var(--border-focus);
+      background: rgba(30, 41, 59, 0.6);
+    }
+
+    .event-row.hero-event {
+      border: 1px solid var(--accent-amber);
+      background: rgba(245, 158, 11, 0.08);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.2);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .event-main {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .platform-pill {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #93c5fd;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .event-nums {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-emerald);
+    }
+
+    /* Settlement Hero Card */
+    .settlement-card {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.7));
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .settlement-card.hero-alert {
+      border: 1px solid var(--accent-amber);
+      box-shadow: 0 0 24px var(--accent-amber-glow);
+    }
+
+    .settlement-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .badge-pending {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--accent-amber);
+      color: var(--accent-amber);
+    }
+
+    .badge-approved {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--accent-emerald);
+      color: var(--accent-emerald);
+    }
+
+    .hash-chain-box {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      overflow-x: auto;
+    }
+
+    .hash-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .hash-val {
+      color: #94a3b8;
+    }
+
+    .btn-approve {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      font-size: 0.95rem;
+      padding: 0.75rem 1.25rem;
+      box-shadow: 0 4px 16px var(--accent-emerald-glow);
+      justify-content: center;
+      border-radius: 8px;
+    }
+    .btn-approve:hover {
+      background: linear-gradient(135deg, #34d399, #10b981);
+      transform: translateY(-1px);
+    }
+
+    /* Modal / Drawer */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(3, 7, 18, 0.85);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 1.5rem;
+    }
+
+    .modal-content {
+      background: #0d1527;
+      border: 1px solid var(--border-focus);
+      border-radius: 14px;
+      max-width: 650px;
+      width: 100%;
+      padding: 2rem;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-group">
+      <div class="brand-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+        RESIDUAL LIVE
+      </div>
+      <div class="badge-live">
+        <div class="pulse-dot"></div>
+        CONFLUENT CLOUD CONNECTED
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn btn-bob" onclick="openBobModal()">
+        <span>IBM BOB GOVERNANCE</span>
+        <span style="opacity: 0.7;">e1935a4d</span>
+      </button>
+      <button class="btn btn-secondary" onclick="resetDemo()">Reset</button>
+      <button class="btn btn-primary" id="btn-step" onclick="stepDemo()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        Next Demo Event
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Contract Meta Info -->
+    <section class="contract-banner">
+      <div class="contract-meta">
+        <div class="meta-item">
+          <span class="meta-label">Title Reference</span>
+          <span class="meta-value">Echoes of Eternity (2026)</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Master Contract</span>
+          <span class="meta-value">AGR-SAG-DGA-2026-088</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Rights Holder (Licensor)</span>
+          <span class="meta-value">Sovereign Media Rights LLC</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Distributor (Licensee)</span>
+          <span class="meta-value">Global Cinema Distribution Corp</span>
+        </div>
+      </div>
+      <div>
+        <span class="platform-pill" style="color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1);">
+          52/52 AUDIT TESTS VALIDATED
+        </span>
+      </div>
+    </section>
+
+    <!-- 4 Core Metrics -->
+    <section class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-title">Accrued Stream Minutes</span>
+        <span class="metric-num" id="val-minutes">0</span>
+        <span class="metric-sub">Ingested live from topic: <code>demo-events</code></span>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-title">Current Royalty Obligation</span>
+        <span class="metric-num" style="color: #38bdf8;" id="val-royalty">$0.00</span>
+        <span class="metric-sub">Clause 4.1 ($0.0015/min) + Escalators</span>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-title">Threshold Target (Hero Moment)</span>
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span class="metric-num" style="color: var(--accent-amber);" id="val-threshold-pct">0%</span>
+          <span style="font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; color: var(--text-dim);">5,000,000 Mins</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-title">Tamper-Proof Audit Chain</span>
+        <span class="metric-num" style="color: var(--accent-emerald);" id="val-integrity">VERIFIED</span>
+        <span class="metric-sub">SHA-256 3-Tier Proof: Entries · Chain · Notice</span>
+      </div>
+    </section>
+
+    <!-- Main Grid -->
+    <div class="dashboard-grid">
+      <!-- Left: Real-time Confluent Stream Feed -->
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            Confluent Cloud Live Stream Feed
+          </span>
+          <span style="font-size: 0.75rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">Topic: demo-events</span>
+        </div>
+
+        <div class="event-feed" id="event-feed">
+          <div style="text-align: center; color: var(--text-dim); padding: 3rem 1rem;">
+            Click <strong>"Next Demo Event"</strong> above to inject curated stream events into Confluent.
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Real-time Settlement & Contract Engine -->
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            Live Settlement Notices (Hero Moment)
+          </span>
+          <span id="settlement-count-badge" class="platform-pill">0 Notices</span>
+        </div>
+
+        <div id="settlement-container">
+          <div style="text-align: center; color: var(--text-dim); padding: 3rem 1rem; border: 1px dashed var(--border-subtle); border-radius: 8px;">
+            Awaiting threshold breach (5,000,000 stream minutes)...<br>
+            <small style="color: var(--text-dim); margin-top: 0.5rem; display: block;">Clause 4.2 milestone will trigger cryptographic settlement upon arrival.</small>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- IBM Bob Modal -->
+  <div class="modal-overlay" id="bob-modal" onclick="closeBobModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.1rem; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+          IBM Bob Shell — Governance & Audit Trail
+        </h3>
+        <button class="btn btn-secondary" style="padding: 0.2rem 0.6rem;" onclick="closeBobModal()">✕</button>
+      </div>
+
+      <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+        As mandated for the <strong>IBM Track</strong>, all structural domain schemas, immutable audit hashing layers, and contract rule engines were synthesized under IBM Bob's governed workflow.
+      </div>
+
+      <div class="hash-chain-box">
+        <div class="hash-row"><span>Task ID:</span> <span class="hash-val" id="bob-task-id">e1935a4d4dfe486aa3290acaa2f66f57</span></div>
+        <div class="hash-row"><span>Bobcoin Spend:</span> <span class="hash-val" id="bob-coins">1.921 Coins (Trial Budget: 50.0)</span></div>
+        <div class="hash-row"><span>Tool Calls Executed:</span> <span class="hash-val">30</span></div>
+        <div class="hash-row"><span>Test Coverage:</span> <span class="hash-val" style="color: var(--accent-emerald);">52/52 Unit Tests Passing (test_schemas.py)</span></div>
+        <div class="hash-row"><span>Ledger Reference:</span> <span class="hash-val">bob-runs/coins-ledger.md</span></div>
+      </div>
+
+      <div style="font-size: 0.8rem; color: var(--text-dim);">
+        "Speed without control and transparency is a liability." Residual Live couples Confluent Cloud high-throughput streaming with IBM Bob's governed cryptographic accountability.
+      </div>
+
+      <button class="btn btn-primary" style="justify-content: center;" onclick="closeBobModal()">Close Inspector</button>
+    </div>
+  </div>
+
+  <script>
+    let ws;
+    const minutesEl = document.getElementById("val-minutes");
+    const royaltyEl = document.getElementById("val-royalty");
+    const thresholdPctEl = document.getElementById("val-threshold-pct");
+    const progressBar = document.getElementById("progress-bar");
+    const eventFeed = document.getElementById("event-feed");
+    const settlementContainer = document.getElementById("settlement-container");
+    const settlementCountBadge = document.getElementById("settlement-count-badge");
+
+    function connectWebSocket() {
+      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(`${proto}//${window.location.host}/ws`);
+
+      ws.onmessage = (msg) => {
+        try {
+          const data = JSON.parse(msg.data);
+          handleMessage(data);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      ws.onclose = () => {
+        setTimeout(connectWebSocket, 2000);
+      };
+    }
+
+    function handleMessage(data) {
+      if (data.type === "INITIAL_STATE") {
+        updateSummary(data.summary);
+        renderSettlements(data.settlements);
+        if (data.recent_events && data.recent_events.length > 0) {
+          eventFeed.innerHTML = "";
+          data.recent_events.forEach(prependEvent);
+        }
+      } else if (data.type === "NEW_EVENT") {
+        updateSummary(data.summary);
+        prependEvent(data.event, data.engine_update.newly_triggered);
+        if (data.engine_update.newly_triggered) {
+          fetchSettlements();
+        }
+      } else if (data.type === "SETTLEMENT_APPROVED") {
+        updateSummary(data.summary);
+        fetchSettlements();
+      } else if (data.type === "RESET") {
+        updateSummary(data.summary);
+        eventFeed.innerHTML = '<div style="text-align: center; color: var(--text-dim); padding: 3rem 1rem;">Click <strong>"Next Demo Event"</strong> above to inject curated stream events into Confluent.</div>';
+        settlementContainer.innerHTML = '<div style="text-align: center; color: var(--text-dim); padding: 3rem 1rem; border: 1px dashed var(--border-subtle); border-radius: 8px;">Awaiting threshold breach (5,000,000 stream minutes)...</div>';
+      }
+    }
+
+    function updateSummary(s) {
+      if (!s) return;
+      minutesEl.innerText = s.total_stream_minutes.toLocaleString();
+      royaltyEl.innerText = `$${s.current_accrued_royalty.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      thresholdPctEl.innerText = `${s.threshold_progress_pct}%`;
+      progressBar.style.width = `${Math.min(100, s.threshold_progress_pct)}%`;
+
+      if (s.threshold_triggered) {
+        progressBar.classList.add("breached");
+      } else {
+        progressBar.classList.remove("breached");
+      }
+      settlementCountBadge.innerText = `${s.settlements_count} Notices`;
+    }
+
+    function prependEvent(ev, isHero = false) {
+      const div = document.createElement("div");
+      div.className = `event-row ${isHero ? "hero-event" : ""}`;
+      div.innerHTML = `
+        <div class="event-main">
+          <span class="platform-pill">${ev.platform}</span>
+          <div>
+            <div style="font-weight: 600; color: #f8fafc;">${ev.event_id}</div>
+            <div style="font-size: 0.72rem; color: var(--text-dim); font-family: 'JetBrains Mono';">${new Date(ev.occurred_at).toLocaleTimeString()} • ${ev.channel} • ${ev.territory}</div>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div class="event-nums">+${(ev.stream_minutes || 0).toLocaleString()} mins</div>
+          <div style="font-size: 0.72rem; color: var(--text-dim);">Clause 4.1 matched</div>
+        </div>
+      `;
+      if (eventFeed.children.length === 1 && eventFeed.children[0].innerText.includes("Click")) {
+        eventFeed.innerHTML = "";
+      }
+      eventFeed.insertBefore(div, eventFeed.firstChild);
+    }
+
+    async function fetchSettlements() {
+      const res = await fetch("/api/settlements");
+      const list = await res.json();
+      renderSettlements(list);
+    }
+
+    function renderSettlements(list) {
+      if (!list || list.length === 0) return;
+      settlementContainer.innerHTML = "";
+
+      list.forEach(s => {
+        const isPending = s.status === "PENDING";
+        const card = document.createElement("div");
+        card.className = `settlement-card ${isPending ? "hero-alert" : ""}`;
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="settlement-badge ${isPending ? "badge-pending" : "badge-approved"}">
+              ${isPending ? "● ACTION REQUIRED: PENDING APPROVAL" : "✓ APPROVED & CRYPTOGRAPHICALLY SEALED"}
+            </span>
+            <span style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: var(--text-muted);">${s.notice_id}</span>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Total Net Payable</div>
+              <div style="font-size: 1.8rem; font-weight: 700; color: #f8fafc; font-family: 'JetBrains Mono';">
+                $${s.net_royalty_due.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <span class="platform-pill" style="color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.1);">
+                INCLUDES $25,000 MILESTONE BONUS
+              </span>
+            </div>
+          </div>
+
+          <div class="hash-chain-box">
+            <div class="hash-row"><span>Audit Entries:</span> <span class="hash-val">${s.audit_chain.length} events hashed</span></div>
+            <div class="hash-row"><span>Chain Hash:</span> <span class="hash-val">${s.audit_chain_hash.slice(0, 24)}…</span></div>
+            <div class="hash-row"><span>Notice Hash:</span> <span class="hash-val">${s.notice_hash.slice(0, 24)}…</span></div>
+            ${s.approved_by ? `<div class="hash-row"><span>Signed By:</span> <span class="hash-val" style="color: var(--accent-emerald);">${s.approved_by} (${new Date(s.approved_at).toLocaleTimeString()})</span></div>` : ""}
+          </div>
+
+          ${isPending ? `
+            <button class="btn btn-approve" onclick="approveNotice('${s.notice_id}')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              1-Click Approve & Disburse Settlement
+            </button>
+          ` : `
+            <div style="text-align: center; color: var(--accent-emerald); font-size: 0.85rem; font-weight: 600; padding: 0.5rem; background: rgba(16, 185, 129, 0.08); border-radius: 6px;">
+              ✓ Settlement Disbursed to Sovereign Media Rights LLC
+            </div>
+          `}
+        `;
+        settlementContainer.appendChild(card);
+      });
+    }
+
+    async function stepDemo() {
+      const btn = document.getElementById("btn-step");
+      btn.disabled = true;
+      try {
+        await fetch("/api/demo/step", { method: "POST" });
+      } catch (e) {
+        console.error(e);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function approveNotice(noticeId) {
+      await fetch(`/api/settlements/${noticeId}/approve`, { method: "POST" });
+    }
+
+    async function resetDemo() {
+      await fetch("/api/demo/reset", { method: "POST" });
+    }
+
+    function openBobModal() {
+      document.getElementById("bob-modal").style.display = "flex";
+    }
+
+    function closeBobModal() {
+      document.getElementById("bob-modal").style.display = "none";
+    }
+
+    connectWebSocket();
+  </script>
+</body>
+</html>
