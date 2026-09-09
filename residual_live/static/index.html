@@ -290,6 +290,91 @@
       color: var(--tag-green-text) !important;
     }
 
+    /* Header Explainer Video Tile */
+    .contract-banner-main {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .contract-banner-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .explainer-tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      cursor: pointer;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .explainer-thumb-container {
+      width: 144px;
+      height: 81px;
+      position: relative;
+      border: 1px solid #0f62fe;
+      border-radius: 2px;
+      overflow: hidden;
+      background: #000000;
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .explainer-tile:hover .explainer-thumb-container {
+      border-color: #0353e9;
+      transform: scale(1.02);
+    }
+
+    .explainer-thumb-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+
+    .explainer-play-badge {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #0f62fe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(15, 98, 254, 0.4);
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+    .explainer-tile:hover .explainer-play-badge {
+      background: #0353e9;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .explainer-tile-label {
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #525252;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      transition: color 0.15s ease;
+    }
+
+    .explainer-tile:hover .explainer-tile-label {
+      color: #0f62fe;
+    }
+
     /* Multi-Title Portfolio Tabs */
     .title-tabs-bar {
       display: flex;
@@ -870,6 +955,66 @@
       background: #e8e8e8;
     }
 
+    /* Explainer Video Modal */
+    .explainer-modal-content {
+      background: #ffffff;
+      border: 1px solid #0f62fe;
+      border-radius: 2px;
+      width: 50vw;
+      max-width: 90vw;
+      min-width: 320px;
+      padding: 0.75rem 1rem 1rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    }
+
+    .explainer-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--cds-border-subtle);
+    }
+
+    .explainer-close-btn {
+      background: transparent;
+      border: none;
+      color: #0f62fe;
+      font-size: 1.25rem;
+      font-weight: 600;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0.25rem 0.5rem;
+      transition: color 0.15s ease, background 0.15s ease;
+      border-radius: 2px;
+    }
+
+    .explainer-close-btn:hover {
+      color: #0353e9;
+      background: var(--tag-blue-bg);
+    }
+
+    .explainer-video-wrapper {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000000;
+      border: 1px solid var(--cds-border-subtle);
+      border-radius: 2px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .explainer-video-wrapper video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
     /* Empty state styling */
     #settlement-container > div {
       background: #f4f4f4;
@@ -958,35 +1103,48 @@
   <main>
     <!-- Contract Meta Info -->
     <section class="contract-banner">
-      <div class="contract-meta">
-        <div class="meta-item">
-          <span class="meta-label">Title Reference</span>
-          <span class="meta-value">Echoes of Eternity (2026)</span>
+      <div class="contract-banner-main">
+        <div class="contract-meta">
+          <div class="meta-item">
+            <span class="meta-label">Title Reference</span>
+            <span class="meta-value">Echoes of Eternity (2026)</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Master Contract</span>
+            <span class="meta-value">AGR-SAG-DGA-2026-088</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Rights Holder (Licensor)</span>
+            <span class="meta-value">Sovereign Media Rights LLC</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Distributor (Licensee)</span>
+            <span class="meta-value">Global Cinema Distribution Corp</span>
+          </div>
         </div>
-        <div class="meta-item">
-          <span class="meta-label">Master Contract</span>
-          <span class="meta-value">AGR-SAG-DGA-2026-088</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">Rights Holder (Licensor)</span>
-          <span class="meta-value">Sovereign Media Rights LLC</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">Distributor (Licensee)</span>
-          <span class="meta-value">Global Cinema Distribution Corp</span>
+        <div class="contract-banner-actions">
+          <button class="btn btn-outline" id="btn-intake" onclick="runContractIntake()" title="Sample agreement modeled on SAG-AFTRA's public residual terms" style="border-color: rgba(59, 130, 246, 0.4); color: #93c5fd; font-size: 0.8rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+            <span>Cold Open: ADK Contract Intake [Sample]</span>
+          </button>
+          <span class="platform-pill" id="demo-key-indicator" onclick="promptDemoKey()" style="cursor: pointer; border-color: rgba(255, 255, 255, 0.15);">
+            🔑 Set Demo Key
+          </span>
+          <span class="platform-pill" style="color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1);">
+            90/90 AUDIT TESTS VALIDATED
+          </span>
         </div>
       </div>
-      <div style="display: flex; gap: 0.75rem; align-items: center;">
-        <button class="btn btn-outline" id="btn-intake" onclick="runContractIntake()" title="Sample agreement modeled on SAG-AFTRA's public residual terms" style="border-color: rgba(59, 130, 246, 0.4); color: #93c5fd; font-size: 0.8rem;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-          <span>Cold Open: ADK Contract Intake [Sample]</span>
-        </button>
-        <span class="platform-pill" id="demo-key-indicator" onclick="promptDemoKey()" style="cursor: pointer; border-color: rgba(255, 255, 255, 0.15);">
-          🔑 Set Demo Key
-        </span>
-        <span class="platform-pill" style="color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1);">
-          90/90 AUDIT TESTS VALIDATED
-        </span>
+
+      <!-- Explainer Video Tile -->
+      <div class="explainer-tile" onclick="openExplainerModal()" title="Watch Explainer Video">
+        <div class="explainer-thumb-container">
+          <video class="explainer-thumb-video" src="/static/explainer.mp4#t=0.001" preload="metadata" muted playsinline></video>
+          <div class="explainer-play-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffffff" style="margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          </div>
+        </div>
+        <span class="explainer-tile-label">Explainer</span>
       </div>
     </section>
 
@@ -1156,6 +1314,22 @@
       </div>
 
       <button class="btn btn-primary" style="justify-content: center;" onclick="closeBobModal()">Close Inspector</button>
+    </div>
+  </div>
+
+  <!-- Explainer Video Modal -->
+  <div class="modal-overlay" id="explainer-modal" onclick="closeExplainerModal(event)">
+    <div class="explainer-modal-content" onclick="event.stopPropagation()">
+      <div class="explainer-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#0f62fe"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <span style="font-weight: 600; font-size: 0.9rem; color: var(--cds-text-primary); text-transform: uppercase; letter-spacing: 0.04em;">Residual Live — System Explainer</span>
+        </div>
+        <button class="explainer-close-btn" onclick="closeExplainerModal()" title="Close (ESC)">✕</button>
+      </div>
+      <div class="explainer-video-wrapper">
+        <video id="explainer-video-player" src="/static/explainer.mp4" controls preload="auto"></video>
+      </div>
     </div>
   </div>
 
@@ -1536,6 +1710,40 @@
         }, 6000);
       }
     }
+
+    function openExplainerModal() {
+      const modal = document.getElementById("explainer-modal");
+      const player = document.getElementById("explainer-video-player");
+      if (!modal || !player) return;
+      modal.style.display = "flex";
+      player.currentTime = 0;
+      player.muted = false;
+      player.play().catch(err => {
+        console.warn("Autoplay with sound prevented:", err);
+      });
+    }
+
+    function closeExplainerModal(event) {
+      if (event && event.target && event.target.id !== "explainer-modal" && !event.target.classList.contains("explainer-close-btn") && !event.target.closest(".explainer-close-btn")) {
+        return;
+      }
+      const modal = document.getElementById("explainer-modal");
+      const player = document.getElementById("explainer-video-player");
+      if (player) {
+        player.pause();
+        player.currentTime = 0;
+      }
+      if (modal) {
+        modal.style.display = "none";
+      }
+    }
+
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") {
+        closeExplainerModal();
+        closeBobModal();
+      }
+    });
 
     getDemoKey();
     connectWebSocket();
