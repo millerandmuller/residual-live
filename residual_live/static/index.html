@@ -1348,7 +1348,7 @@
       settlementContainer.innerHTML = "";
 
       list.forEach(s => {
-        const isPending = s.status === "PENDING";
+        const isPending = s.status === "PENDING" || s.status === "pending";
         const adkEntry = (s.audit_log || []).find(e => e.computation_note && (e.computation_note.includes("ADK Agent") || e.computation_note.includes("VERIFIED"))) || (s.audit_log || []).slice(-1)[0];
         const card = document.createElement("div");
         card.className = `settlement-card ${isPending ? "hero-alert" : ""}`;
