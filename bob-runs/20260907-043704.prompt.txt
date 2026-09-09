@@ -1,0 +1,1 @@
+Design core Python Pydantic schemas for media royalties: RoyaltyEvent, ContractRule, and SettlementNotice with audit verification

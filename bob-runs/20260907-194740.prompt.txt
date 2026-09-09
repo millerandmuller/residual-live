@@ -1,0 +1,1 @@
+Generate comprehensive pytest test cases for Contract-Intake-Agent verifying SAG-AFTRA streaming clause extraction in product/tests/test_contract_intake.py

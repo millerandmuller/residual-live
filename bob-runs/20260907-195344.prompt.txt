@@ -1,0 +1,1 @@
+Review and harden cryptographic audit-chain hashing for settlement notices streamed over Confluent obligations topic in product/residual_live/schemas/settlement_notice.py

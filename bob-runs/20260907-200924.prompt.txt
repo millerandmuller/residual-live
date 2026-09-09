@@ -1,0 +1,1 @@
+Create multi-title streaming test corpus with 3 film titles (Echoes of Eternity, Neon Horizon, Quantum Fallback) and per-title contract rules in product/tests/test_multi_title.py
