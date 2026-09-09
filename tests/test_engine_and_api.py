@@ -70,7 +70,7 @@ def test_api_status_and_demo_endpoints(client):
     assert res_bob.status_code == 200
     bob_data = res_bob.json()
     assert bob_data["task_id"] == "e1935a4d4dfe486aa3290acaa2f66f57"
-    assert bob_data["tests_passed"] == 52
+    assert bob_data["tests_passed"] == 90
 
     # Test unauthorized POST without X-Demo-Key
     res_unauth = client.post("/api/demo/step")
