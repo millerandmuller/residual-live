@@ -322,9 +322,11 @@ def get_bob_audit():
     """Return IBM Bob task verification metadata for the jury."""
     return {
         "task_id": "e1935a4d4dfe486aa3290acaa2f66f57",
-        "session_costs_bobcoins": 1.921,
+        "total_bob_runs": 5,
+        "total_bobcoins_spent": 5.803,
+        "session_costs_bobcoins": 5.803,
         "tool_calls": 30,
-        "tests_passed": 52,
+        "tests_passed": 90,
         "governed_by": "IBM Bob Shell (watsonx Code Assistant)",
         "proof_file": "bob-runs/20260907-043704.result.json",
         "ledger_file": "bob-runs/coins-ledger.md",
