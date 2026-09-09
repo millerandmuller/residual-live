@@ -154,7 +154,7 @@ All 90 unit and integration tests validate engine calculations, cryptographic ha
 
 A production deployment is accessible for judges at:
 
-**[https://flowtuner.de](https://flowtuner.de)**
+**[https://residual.millerandmuller.com](https://residual.millerandmuller.com)**
 
 To test state-mutating actions (Next Demo Event, 1-Click Approval, Reset, Intake), judges can use the authorization key provided in the Devpost submission notes:
 - Either append `#key=<DEMO_KEY>` to the URL,
