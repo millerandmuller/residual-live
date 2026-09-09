@@ -1,0 +1,3 @@
+{"type":"error","timestamp":"2026-09-07T17:56:45.493Z","severity":"error","message":"Maximum cost limit reached: 1.5336959999999997 exceeds 1.5 (task: 97bf505e1b45efb2534c0c3ad64effbc)"}
+{"type":"error","timestamp":"2026-09-07T17:56:45.493Z","severity":"error","message":"Maximum cost limit reached: 1.5336959999999997 exceeds 1.5 (task: 97bf505e1b45efb2534c0c3ad64effbc)"}
+{"type":"result","timestamp":"2026-09-07T17:56:45.504Z","status":"success","stats":{"task_id":"97bf505e1b45efb2534c0c3ad64effbc","duration_ms":179834,"session_costs":1.5336959999999997,"max_cost":1.5,"tool_calls":21},"last_message":"Error from tool execute_command: Exit code: 127\n\nStderr:\nzsh:1: command not found: python"}
