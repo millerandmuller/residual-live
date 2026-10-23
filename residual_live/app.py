@@ -13,6 +13,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import secrets
 from typing import List, Optional
 
 from fastapi import (
@@ -183,14 +184,22 @@ api_key_header = APIKeyHeader(name="X-Demo-Key", auto_error=False)
 
 
 def verify_demo_key(x_demo_key: Optional[str] = Security(api_key_header)):
-    """Verify demo authorization key on state-mutating POST endpoints."""
+    """Verify demo authorization key on state-mutating POST endpoints.
+
+    Fails closed: if DEMO_KEY is not configured, every mutating request is refused
+    instead of being let through unauthenticated.
+    """
     expected = (settings.DEMO_KEY or "").strip()
-    if expected:
-        if not x_demo_key or x_demo_key.strip() != expected:
-            raise HTTPException(
-                status_code=401,
-                detail="Unauthorized: Missing or invalid X-Demo-Key header. Provide X-Demo-Key or append #key=... to the URL.",
-            )
+    if not expected:
+        raise HTTPException(
+            status_code=503,
+            detail="Demo actions are disabled: DEMO_KEY is not configured on the server.",
+        )
+    if not x_demo_key or not secrets.compare_digest(x_demo_key.strip(), expected):
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Missing or invalid X-Demo-Key header. Provide X-Demo-Key or append #key=... to the URL.",
+        )
     return x_demo_key
 
 

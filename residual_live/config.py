@@ -40,7 +40,8 @@ class Settings:
     BOB_AUDIT_LEDGER: str = "bob-runs/coins-ledger.md"
 
     # Demo Key Authorization for state-mutating endpoints
-    DEMO_KEY: str = os.getenv("DEMO_KEY", "***REMOVED***")
+    # No default on purpose: the key must come from the environment, never from source.
+    DEMO_KEY: str = os.getenv("DEMO_KEY", "")
 
     # Server Configuration
     HOST: str = os.getenv("HOST", "0.0.0.0")
